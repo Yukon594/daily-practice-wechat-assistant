@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.venv/
+config.json
+data/ledger.db
+data/notes/
+data_demo/

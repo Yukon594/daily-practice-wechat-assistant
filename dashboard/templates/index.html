@@ -1,0 +1,2371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>日课 · 运动 · 专注 · 想法</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,400&family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --paper: #f1e7d3;
+        --card: #f7f0e1;
+        --ink: #221c14;
+        --ink-soft: #5f5645;
+        --ink-faint: #8a7f69;
+        --rule: rgba(34, 28, 20, 0.16);
+        --rule-soft: rgba(34, 28, 20, 0.08);
+        --cinnabar: #c0432a;
+        --cinnabar-deep: #9a3220;
+        --celadon: #3f6f63;
+        --ochre: #c0902f;
+        --plum: #7a4b52;
+        --slate: #4a5b6b;
+        --display: "Fraunces", "Noto Serif SC", Georgia, serif;
+        --body: "Noto Serif SC", "Fraunces", Georgia, serif;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: var(--body);
+        background-color: var(--paper);
+        background-image:
+          radial-gradient(circle at 12% 8%, rgba(192, 67, 42, 0.07), transparent 34%),
+          radial-gradient(circle at 88% 92%, rgba(63, 111, 99, 0.08), transparent 32%),
+          linear-gradient(168deg, #f3ead7 0%, #e9dcc1 60%, #efe6d2 100%);
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.5;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+        mix-blend-mode: multiply;
+      }
+      .shell {
+        position: relative;
+        z-index: 1;
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: clamp(20px, 4vw, 52px) clamp(16px, 4vw, 40px) 64px;
+      }
+      .masthead { text-align: center; }
+      .masthead-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: var(--display);
+        font-size: 0.72rem;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .masthead-top .mt-left { color: var(--cinnabar-deep); }
+      .live-dot { display: inline-flex; align-items: center; gap: 7px; color: var(--celadon); }
+      .live-dot.warn { color: var(--cinnabar-deep); }
+      .live-dot i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 0 0 rgba(63, 111, 99, 0.5);
+        animation: pulse 2.4s infinite;
+      }
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(63, 111, 99, 0.4); }
+        70% { box-shadow: 0 0 0 9px rgba(63, 111, 99, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(63, 111, 99, 0); }
+      }
+      .masthead-main {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(16px, 4vw, 46px);
+        margin-top: 22px;
+      }
+      .masthead-main .flank {
+        flex: 1;
+        height: 0;
+        max-width: 340px;
+        border-top: 1px solid var(--ink);
+        border-bottom: 3px solid var(--ink);
+        padding-bottom: 5px;
+        opacity: 0.82;
+      }
+      .wordmark {
+        margin: 0;
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: clamp(2.9rem, 9.5vw, 6.4rem);
+        line-height: 0.9;
+        letter-spacing: 0.08em;
+        display: inline-flex;
+        align-items: flex-start;
+        white-space: nowrap;
+      }
+      .wordmark .seal {
+        font-family: var(--body);
+        font-size: 0.2em;
+        font-style: normal;
+        font-weight: 500;
+        letter-spacing: 0;
+        color: #f4ead4;
+        background: var(--cinnabar);
+        padding: 0.32em 0.4em 0.36em;
+        border-radius: 0.26em;
+        margin: 0.5em 0 0 0.5em;
+        transform: rotate(-3deg);
+        box-shadow: 0 8px 18px -10px rgba(154, 50, 32, 0.85);
+      }
+      .dek {
+        margin: 18px auto 0;
+        max-width: 680px;
+        font-family: var(--display);
+        font-style: italic;
+        font-size: 1rem;
+        line-height: 1.6;
+        color: var(--ink-soft);
+      }
+      .dek .dek-mark {
+        font-style: normal;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        color: var(--cinnabar-deep);
+        margin-right: 10px;
+      }
+      .meta-bar {
+        display: inline-flex;
+        margin-top: 24px;
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.32);
+      }
+      .meta-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 12px clamp(18px, 3vw, 34px);
+        border-right: 1px solid var(--rule-soft);
+      }
+      .meta-cell:last-child { border-right: none; }
+      .mc-label {
+        font-family: var(--display);
+        font-size: 0.64rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+      }
+      .mc-value {
+        font-family: var(--display);
+        font-size: 1.04rem;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+      .select-wrap { position: relative; display: inline-flex; align-items: center; }
+      .select-wrap::after {
+        content: "▾";
+        position: absolute;
+        right: 2px;
+        pointer-events: none;
+        color: var(--cinnabar);
+        font-size: 0.72rem;
+      }
+      #monthSelect {
+        appearance: none;
+        -webkit-appearance: none;
+        background: transparent;
+        border: none;
+        font-family: var(--display);
+        font-size: 1.04rem;
+        font-weight: 500;
+        color: var(--cinnabar-deep);
+        cursor: pointer;
+        padding: 0 18px 0 0;
+        outline: none;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+      .figures {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        margin-top: 30px;
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+      }
+      .figure {
+        padding: 22px 26px 24px;
+        border-right: 1px solid var(--rule-soft);
+      }
+      .figure:last-child { border-right: none; }
+      .figure .label {
+        font-family: var(--display);
+        font-size: 0.72rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .figure .label::before { content: ""; width: 14px; height: 1px; background: var(--cinnabar); }
+      .figure.focus .label::before { background: var(--celadon); }
+      .figure .value {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(1.7rem, 3.4vw, 2.7rem);
+        line-height: 1;
+        margin-top: 14px;
+        font-variant-numeric: lining-nums tabular-nums;
+        letter-spacing: -0.01em;
+      }
+      .figure .note { margin-top: 10px; font-size: 0.86rem; color: var(--ink-soft); }
+      .layout {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        align-items: start;
+        gap: 26px;
+        margin-top: 26px;
+      }
+      .column {
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
+        min-height: 0;
+      }
+      #notesColumn {
+        min-height: 0;
+        overflow: hidden;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        padding: 24px 26px 26px;
+        position: relative;
+        box-shadow: 0 1px 0 rgba(255, 252, 244, 0.7) inset, 0 22px 50px -34px rgba(60, 42, 24, 0.5);
+      }
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .card-head h2 {
+        margin: 0;
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: 1.5rem;
+        letter-spacing: 0.01em;
+      }
+      .card-head .kicker {
+        font-family: var(--display);
+        font-style: italic;
+        font-size: 0.86rem;
+        color: var(--ink-faint);
+        display: block;
+        margin-top: 4px;
+      }
+      .rhythm-head-copy { min-width: 0; }
+      [hidden] { display: none !important; }
+      .mood-subtools {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+        padding: 7px 12px 7px 14px;
+        border: 1px solid rgba(122, 75, 82, 0.16);
+        border-radius: 999px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.24)),
+          rgba(122, 75, 82, 0.03);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+      }
+      .mood-subtools .mood-label {
+        font-family: var(--display);
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+      }
+      .mood-month-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+      }
+      .mood-month-wrap::after {
+        content: "▾";
+        position: absolute;
+        right: 2px;
+        pointer-events: none;
+        color: var(--plum);
+        font-size: 0.68rem;
+      }
+      #moodMonth {
+        appearance: none;
+        -webkit-appearance: none;
+        background: transparent;
+        border: none;
+        font-family: var(--display);
+        font-size: 0.88rem;
+        color: var(--plum);
+        cursor: pointer;
+        padding: 0 16px 0 0;
+        outline: none;
+        font-variant-numeric: tabular-nums;
+      }
+      .mode-toggle {
+        display: inline-flex;
+        gap: 6px;
+        padding: 4px;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.4);
+      }
+      .mode-btn {
+        border: none;
+        background: transparent;
+        color: var(--ink-soft);
+        font-family: var(--display);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        padding: 8px 14px;
+        min-width: 86px;
+        text-align: center;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+      }
+      .mode-btn:hover { color: var(--cinnabar-deep); }
+      .mode-btn.active {
+        background: var(--ink);
+        color: var(--paper);
+        transform: translateY(-1px);
+      }
+      .mode-btn[data-mode="focus"].active { background: var(--celadon); }
+      .heatmap-shell { display: flex; flex-direction: column; gap: 16px; }
+      .heatmap-frame {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .weekday-stack {
+        display: grid;
+        grid-template-rows: repeat(7, 17px);
+        gap: 6px;
+        padding-top: 24px;
+        font-family: var(--display);
+        font-size: 0.72rem;
+        color: var(--ink-faint);
+      }
+      .weekday-stack span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .heatmap-main { min-width: 0; }
+      .week-labels {
+        display: grid;
+        gap: 6px;
+        margin-left: 1px;
+        margin-bottom: 8px;
+        font-family: var(--display);
+        font-size: 0.72rem;
+        color: var(--ink-faint);
+      }
+      .week-labels span {
+        min-width: 17px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: visible;
+      }
+      .heatmap-grid {
+        display: grid;
+        gap: 6px;
+        align-items: start;
+      }
+      .week-column {
+        display: grid;
+        grid-template-rows: repeat(7, 17px);
+        gap: 6px;
+      }
+      .heat-cell {
+        width: 17px;
+        height: 17px;
+        border-radius: 3px;
+        border: 1px solid rgba(34, 28, 20, 0.08);
+        background: rgba(138, 127, 105, 0.1);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      }
+      .heat-cell.level-1 { background: rgba(192, 144, 47, 0.34); }
+      .heat-cell.level-2 { background: rgba(192, 144, 47, 0.58); }
+      .heat-cell.level-3 { background: rgba(192, 67, 42, 0.68); }
+      .heat-cell.level-4 { background: rgba(63, 111, 99, 0.84); }
+      .heat-cell.muted { opacity: 0.45; }
+      .heat-cell.future {
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+      }
+      .heatmap-legend {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .legend-scale {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--display);
+        font-size: 0.78rem;
+        color: var(--ink-faint);
+      }
+      .legend-swatches {
+        display: inline-flex;
+        gap: 5px;
+      }
+      .legend-swatches i {
+        width: 13px;
+        height: 13px;
+        border-radius: 3px;
+        border: 1px solid rgba(34, 28, 20, 0.08);
+        display: inline-block;
+      }
+      .legend-swatches i:nth-child(1) { background: rgba(138, 127, 105, 0.1); }
+      .legend-swatches i:nth-child(2) { background: rgba(192, 144, 47, 0.34); }
+      .legend-swatches i:nth-child(3) { background: rgba(192, 144, 47, 0.58); }
+      .legend-swatches i:nth-child(4) { background: rgba(192, 67, 42, 0.68); }
+      .legend-swatches i:nth-child(5) { background: rgba(63, 111, 99, 0.84); }
+      .legend-note {
+        font-size: 0.84rem;
+        color: var(--ink-soft);
+      }
+      /* ---------- mood mode ---------- */
+      .mode-btn[data-mode="mood"].active { background: var(--plum); }
+      .mood-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .mood-icon svg { width: 100%; height: 100%; }
+      .mood-icon svg [stroke] { stroke: currentColor; }
+      .ms-value .mood-icon { vertical-align: -3px; margin-right: 7px; }
+      .mood-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+      .mood-legend .mle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--display);
+        font-size: 0.82rem;
+        color: var(--ink-soft);
+      }
+      .mood-legend .mle .mood-icon { width: 17px; height: 17px; }
+      .rhythm-body.mood-calendar-mode {
+        grid-template-columns: 1fr;
+        justify-content: stretch;
+        align-items: stretch;
+      }
+      .rhythm-body.mood-calendar-mode .rhythm-stats {
+        grid-template-columns: repeat(3, 1fr);
+        grid-auto-rows: 1fr;
+      }
+      .calendar-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 286px;
+        gap: 22px;
+        align-items: stretch;
+      }
+      .mood-calendar {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        width: min(100%, 496px);
+        margin: 0;
+        padding: 14px 14px 12px;
+        border: 1px solid rgba(34, 28, 20, 0.09);
+        border-radius: 16px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.3)),
+          linear-gradient(135deg, rgba(122, 75, 82, 0.05), rgba(255, 255, 255, 0));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 14px 26px -28px rgba(60, 42, 24, 0.5);
+      }
+      .calendar-weekdays,
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .calendar-weekdays span {
+        text-align: center;
+        font-family: var(--display);
+        font-size: 0.72rem;
+        color: var(--ink-faint);
+        letter-spacing: 0.08em;
+      }
+      .mood-day {
+        min-height: 66px;
+        padding: 8px 4px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 9px;
+        font-family: var(--body);
+        border: 1px solid rgba(34, 28, 20, 0.06);
+        border-radius: 14px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.2)),
+          rgba(255, 255, 255, 0.18);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+        transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+      }
+      .mood-day:hover {
+        transform: translateY(-1px);
+        border-color: rgba(122, 75, 82, 0.18);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 10px 20px -24px rgba(60, 42, 24, 0.5);
+      }
+      .mood-day.outside {
+        opacity: 0.28;
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+      }
+      .mood-day.future {
+        opacity: 0.58;
+      }
+      .mood-day.today {
+        border-color: rgba(192, 67, 42, 0.2);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.18)),
+          rgba(192, 67, 42, 0.03);
+      }
+      .mood-day.today .mood-day-date {
+        color: var(--cinnabar-deep);
+      }
+      .mood-day.active {
+        border-color: rgba(122, 75, 82, 0.24);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.24)),
+          rgba(122, 75, 82, 0.05);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.76),
+          0 16px 26px -24px rgba(122, 75, 82, 0.45);
+      }
+      .mood-day.active .mood-day-date {
+        color: var(--plum);
+      }
+      .mood-day-date {
+        font-family: var(--display);
+        font-size: 0.95rem;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+      .mood-day-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 24px;
+        min-width: 24px;
+        line-height: 1;
+      }
+      .mood-day-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border: 1px solid rgba(34, 28, 20, 0.05);
+        background: rgba(255, 255, 255, 0.58);
+        cursor: pointer;
+        border-radius: 999px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+        transition: transform 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+      }
+      .mood-day-icon:hover {
+        transform: translateY(-1px) scale(1.05);
+        border-color: rgba(122, 75, 82, 0.22);
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 10px 18px -20px rgba(122, 75, 82, 0.5);
+      }
+      .mood-day-icon .mood-icon { width: 18px; height: 18px; }
+      .mood-day.active .mood-day-icon {
+        border-color: rgba(122, 75, 82, 0.2);
+        background: rgba(255, 255, 255, 0.82);
+      }
+      .mood-day-mark.empty {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: rgba(138, 127, 105, 0.34);
+        box-shadow: 0 0 0 5px rgba(138, 127, 105, 0.06);
+      }
+      .mood-dist-panel {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(34, 28, 20, 0.09);
+        border-radius: 16px;
+        padding: 14px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.3)),
+          linear-gradient(180deg, rgba(122, 75, 82, 0.04), rgba(255, 255, 255, 0));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 14px 26px -28px rgba(60, 42, 24, 0.45);
+      }
+      .mood-dist-list {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 9px;
+        flex: 1;
+      }
+      .mood-dist-chip {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border: 1px solid rgba(34, 28, 20, 0.06);
+        border-radius: 12px;
+        padding: 10px 11px;
+        background: rgba(255, 255, 255, 0.42);
+        font-size: 0.84rem;
+        color: var(--ink-soft);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+      }
+      .mood-dist-chip.zero {
+        opacity: 0.56;
+      }
+      .mood-dist-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .mood-dist-main {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+      .mood-dist-pct {
+        font-family: var(--display);
+        color: var(--ink);
+        white-space: nowrap;
+        font-size: 0.82rem;
+      }
+      .mood-dist-bar {
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(34, 28, 20, 0.08);
+        overflow: hidden;
+      }
+      .mood-dist-fill {
+        display: block;
+        height: 100%;
+        min-width: 0;
+        border-radius: inherit;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+      .mood-dist-chip .mood-icon {
+        width: 15px;
+        height: 15px;
+      }
+      .mood-dist-chip strong {
+        font-family: var(--display);
+        font-weight: 500;
+        color: var(--ink);
+      }
+      .mood-note-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 48;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(34, 28, 20, 0.28);
+        backdrop-filter: blur(2px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+      }
+      .mood-note-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .mood-note-dialog {
+        width: min(420px, 100%);
+        background: #fbf6ec;
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        box-shadow: 0 28px 70px -36px rgba(34, 28, 20, 0.7);
+        padding: 18px 18px 16px;
+        transform: translateY(10px) scale(0.985);
+        transition: transform 180ms ease;
+      }
+      .mood-note-overlay.open .mood-note-dialog {
+        transform: none;
+      }
+      .mood-note-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .mood-note-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .mood-note-glyph {
+        flex: none;
+      }
+      .mood-note-title {
+        font-family: var(--display);
+        font-size: 1rem;
+        line-height: 1.35;
+      }
+      .mood-note-close {
+        border: none;
+        background: transparent;
+        color: var(--ink-faint);
+        font-size: 1.1rem;
+        cursor: pointer;
+        line-height: 1;
+      }
+      .mood-note-body {
+        font-size: 0.9rem;
+        line-height: 1.7;
+        color: var(--ink-soft);
+      }
+      .cat-icon { display: inline-flex; width: 16px; height: 16px; }
+      .mini-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .mini-stat {
+        padding: 11px 14px;
+        border: 1px solid var(--rule-soft);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.4);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68);
+      }
+      .mini-stat .ms-label {
+        font-family: var(--display);
+        font-size: 0.64rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+      }
+      .mini-stat .ms-value {
+        font-family: var(--display);
+        font-size: 1.1rem;
+        margin-top: 5px;
+        font-variant-numeric: tabular-nums;
+      }
+      .mini-stat .ms-inline {
+        margin-left: 10px;
+        font-family: var(--body);
+        font-size: 0.74rem;
+        color: var(--ink-faint);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      /* rhythm card: heatmap sized to its content, stats fill the rest of the card */
+      .rhythm-body {
+        display: grid;
+        grid-template-columns: max-content 230px;
+        gap: 24px;
+        justify-content: center;
+        align-items: stretch;
+      }
+      /* three boxes share the heatmap's height evenly, so the block matches it */
+      .rhythm-stats { grid-template-columns: 1fr; grid-auto-rows: 1fr; gap: 12px; }
+      .struct-select-wrap { position: relative; display: inline-flex; align-items: center; }
+      .struct-select-wrap::after {
+        content: "▾";
+        position: absolute;
+        right: 2px;
+        pointer-events: none;
+        color: var(--cinnabar);
+        font-size: 0.7rem;
+      }
+      #structureMonth {
+        appearance: none;
+        -webkit-appearance: none;
+        background: transparent;
+        border: none;
+        font-family: var(--display);
+        font-size: 0.96rem;
+        font-weight: 500;
+        color: var(--cinnabar-deep);
+        cursor: pointer;
+        padding: 0 16px 0 0;
+        outline: none;
+        font-variant-numeric: tabular-nums;
+      }
+      @media (max-width: 980px) {
+        .rhythm-body { grid-template-columns: 1fr; }
+        .rhythm-stats { grid-template-columns: repeat(3, 1fr); }
+        .rhythm-body.mood-calendar-mode { grid-template-columns: 1fr; }
+        .rhythm-body.mood-calendar-mode .rhythm-stats { grid-template-columns: 1fr; }
+        .calendar-shell { grid-template-columns: 1fr; }
+        .mood-calendar { width: 100%; }
+      }
+      .cat-split {
+        display: grid;
+        grid-template-columns: 0.85fr 1.15fr;
+        gap: 24px;
+        align-items: center;
+      }
+      .cat-ring { position: relative; height: 230px; }
+      .cat-ring .ring-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .ring-center .rc-label {
+        font-family: var(--display);
+        font-size: 0.64rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+      }
+      .ring-center .rc-value {
+        font-family: var(--display);
+        font-size: 1.4rem;
+        font-variant-numeric: tabular-nums;
+        margin-top: 4px;
+      }
+      .cat-table { display: flex; flex-direction: column; }
+      .cat-row {
+        display: grid;
+        grid-template-columns: 12px 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .cat-row:last-child { border-bottom: none; }
+      .cat-swatch { width: 11px; height: 11px; border-radius: 2px; }
+      .cat-name { font-size: 0.98rem; }
+      .cat-name .pct {
+        color: var(--ink-faint);
+        font-size: 0.82rem;
+        margin-left: 8px;
+        font-variant-numeric: tabular-nums;
+      }
+      .cat-amt {
+        font-family: var(--display);
+        font-variant-numeric: tabular-nums;
+        font-size: 0.98rem;
+      }
+      .notes-card {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+      }
+      .notes-toolbar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+      .notes-count { font-variant-numeric: tabular-nums; }
+      .search-box { position: relative; }
+      .search-box input {
+        width: 100%;
+        font-family: var(--body);
+        font-size: 0.95rem;
+        color: var(--ink);
+        background: rgba(255, 252, 244, 0.55);
+        border: 1px solid var(--rule-soft);
+        border-bottom: 1.5px solid var(--rule);
+        border-radius: 2px;
+        padding: 9px 30px 9px 34px;
+        outline: none;
+        transition: border-color 160ms ease, background 160ms ease;
+      }
+      .search-box input::placeholder {
+        color: var(--ink-faint);
+        font-family: var(--display);
+        font-style: italic;
+        letter-spacing: 0.02em;
+      }
+      .search-box input:focus {
+        background: #fbf6ec;
+        border-bottom: 2px solid var(--cinnabar);
+      }
+      .search-box .si {
+        position: absolute;
+        left: 11px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 15px;
+        height: 15px;
+        color: var(--ink-faint);
+        pointer-events: none;
+        display: inline-flex;
+        transition: color 160ms ease;
+      }
+      .search-box .si svg { width: 100%; height: 100%; }
+      .search-box:focus-within .si { color: var(--cinnabar-deep); }
+      .search-box .clear {
+        position: absolute;
+        right: 7px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: var(--ink-faint);
+        font-size: 1.1rem;
+        line-height: 1;
+        display: none;
+      }
+      .search-box .clear.show { display: block; }
+      .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+      .chip {
+        font-family: var(--display);
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        border: 1px solid var(--rule);
+        background: transparent;
+        color: var(--ink-soft);
+        border-radius: 999px;
+        padding: 4px 11px;
+        transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+      }
+      .chip:hover { border-color: var(--cinnabar); color: var(--cinnabar-deep); }
+      .chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+      .chip .c { opacity: 0.6; margin-left: 5px; font-variant-numeric: tabular-nums; }
+      .chip.droppable {
+        position: relative;
+        border-style: dashed;
+      }
+      .chip.drop-active {
+        border-color: var(--cinnabar);
+        color: var(--cinnabar-deep);
+        background: rgba(192, 67, 42, 0.08);
+      }
+      .chip.drop-disabled {
+        opacity: 0.55;
+      }
+      .notes-drag-hint {
+        margin: 0 0 10px;
+        font-size: 0.82rem;
+        color: var(--ink-faint);
+      }
+      .notes-drag-hint:empty { display: none; margin: 0; }
+      .notes-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding-right: 4px;
+      }
+      .note-item {
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--rule-soft);
+        padding: 14px 12px;
+        cursor: pointer;
+        font-family: var(--body);
+        color: var(--ink);
+        transition: background 160ms ease, padding-left 160ms ease;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .note-item:hover,
+      .note-item.active { background: rgba(192, 67, 42, 0.06); padding-left: 18px; }
+      .note-item.active { box-shadow: inset 3px 0 0 var(--cinnabar); }
+      .note-item.dragging {
+        opacity: 0.48;
+        transform: scale(0.985);
+      }
+      .note-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .note-title {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: 1.08rem;
+        line-height: 1.25;
+      }
+      .note-cat {
+        flex-shrink: 0;
+        font-family: var(--display);
+        font-size: 0.68rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--celadon);
+        border: 1px solid rgba(63, 111, 99, 0.32);
+        border-radius: 2px;
+        padding: 2px 7px;
+      }
+      .note-meta {
+        font-size: 0.8rem;
+        color: var(--ink-faint);
+        font-variant-numeric: tabular-nums;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .note-tag { color: var(--ink-soft); }
+      .note-snippet { font-size: 0.86rem; color: var(--ink-soft); line-height: 1.55; }
+      .note-snippet mark,
+      .note-title mark {
+        background: rgba(192, 144, 47, 0.34);
+        color: inherit;
+        padding: 0 2px;
+        border-radius: 2px;
+      }
+      .empty-state {
+        color: var(--ink-faint);
+        font-style: italic;
+        font-family: var(--display);
+        padding: 24px 6px;
+        text-align: center;
+      }
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(34, 28, 20, 0.44);
+        backdrop-filter: blur(3px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 200ms ease;
+      }
+      .modal-overlay.open { opacity: 1; pointer-events: auto; }
+      .modal {
+        position: relative;
+        width: min(660px, 100%);
+        max-height: 86vh;
+        overflow-y: auto;
+        background: var(--card);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        padding: 40px clamp(24px, 4vw, 44px) 32px;
+        box-shadow: 0 44px 100px -34px rgba(40, 28, 16, 0.66);
+        transform: translateY(16px) scale(0.985);
+        transition: transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
+      }
+      .modal-overlay.open .modal { transform: none; }
+      .modal-seal {
+        position: absolute;
+        top: 22px;
+        left: clamp(24px, 4vw, 44px);
+        font-family: var(--body);
+        font-size: 0.72rem;
+        color: #f4ead4;
+        background: var(--cinnabar);
+        padding: 3px 7px;
+        border-radius: 4px;
+        transform: rotate(-3deg);
+      }
+      .modal-close {
+        position: absolute;
+        top: 16px;
+        right: 18px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid var(--rule);
+        background: rgba(255, 255, 255, 0.5);
+        color: var(--ink-soft);
+        font-size: 1.2rem;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: border-color 160ms ease, color 160ms ease, transform 220ms ease;
+      }
+      .modal-close:hover {
+        border-color: var(--cinnabar);
+        color: var(--cinnabar-deep);
+        transform: rotate(90deg);
+      }
+      .m-eyebrow {
+        margin: 14px 0 0;
+        font-family: var(--display);
+        font-size: 0.74rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--celadon);
+      }
+      .m-title {
+        margin: 8px 0 14px;
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 1.72rem;
+        line-height: 1.15;
+      }
+      .m-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        align-items: center;
+        font-family: var(--display);
+        font-style: italic;
+        color: var(--ink-faint);
+        font-size: 0.9rem;
+        padding-bottom: 18px;
+        margin-bottom: 22px;
+        border-bottom: 3px double var(--ink);
+      }
+      .m-tag {
+        font-style: normal;
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        color: var(--ink-soft);
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        padding: 2px 9px;
+      }
+      .m-foot {
+        margin-top: 26px;
+        padding-top: 14px;
+        border-top: 1px solid var(--rule-soft);
+        display: flex;
+        justify-content: flex-end;
+      }
+      .m-permalink {
+        font-family: var(--display);
+        font-size: 0.76rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--celadon);
+        text-decoration: none;
+        transition: color 140ms ease;
+      }
+      .m-permalink:hover { color: var(--cinnabar-deep); }
+      .markdown { line-height: 1.78; font-size: 0.98rem; color: var(--ink); }
+      .markdown h2 {
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 1.04rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--cinnabar-deep);
+        margin: 22px 0 8px;
+      }
+      .markdown h2:first-child { margin-top: 0; }
+      .markdown p { margin: 10px 0; }
+      .markdown ul { margin: 8px 0; padding-left: 4px; list-style: none; }
+      .markdown li { position: relative; padding-left: 22px; margin: 6px 0; }
+      .markdown li::before { content: "❧"; position: absolute; left: 0; color: var(--ochre); font-size: 0.85em; }
+      .markdown li.todo::before { content: "☐"; color: var(--ink-faint); }
+      .markdown li.done::before { content: "☑"; color: var(--celadon); }
+      .markdown strong { font-weight: 600; }
+      .reveal {
+        opacity: 0;
+        transform: translateY(14px);
+        animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+      }
+      @keyframes rise { to { opacity: 1; transform: none; } }
+      @media (max-width: 1080px) {
+        .layout {
+          grid-template-columns: 1fr;
+          align-items: start;
+        }
+        #notesColumn {
+          height: auto;
+          overflow: visible;
+        }
+        .notes-card {
+          min-height: 0;
+          height: auto;
+        }
+      }
+      @media (max-width: 980px) {
+        .figures { grid-template-columns: repeat(2, 1fr); }
+        .figure:nth-child(2) { border-right: none; }
+        .figure:nth-child(1),
+        .figure:nth-child(2) { border-bottom: 1px solid var(--rule-soft); }
+        .cat-split { grid-template-columns: 1fr; }
+        .masthead-main .flank { max-width: 80px; }
+        .meta-bar { flex-wrap: wrap; justify-content: center; }
+        .mini-stats { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 560px) {
+        .figures { grid-template-columns: 1fr; }
+        .figure {
+          border-right: none;
+          border-bottom: 1px solid var(--rule-soft);
+        }
+        .figure:last-child { border-bottom: none; }
+        .card { padding: 20px 18px 22px; }
+        .card-head {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .mode-toggle { width: 100%; justify-content: space-between; }
+        .mode-btn { flex: 1; }
+        .mood-subtools { width: 100%; justify-content: space-between; }
+        .calendar-weekdays,
+        .calendar-grid { gap: 6px; }
+        .mood-day { min-height: 52px; }
+        .mood-calendar { padding: 10px; }
+        .mood-dist-panel { padding: 12px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="masthead reveal" style="animation-delay: 0.02s">
+        <div class="masthead-top">
+          <span class="mt-left">私人日课 · Daily Practice</span>
+          <span class="live-dot" id="syncDot"><i></i><span id="syncStatus">同步中…</span></span>
+        </div>
+        <div class="masthead-main">
+          <span class="flank"></span>
+          <h1 class="wordmark">日课<span class="seal">課</span></h1>
+          <span class="flank"></span>
+        </div>
+        <p class="dek">
+          <span class="dek-mark">The Daily Almanac</span>运动、专注、随手一念，把每天的身心轨迹收进同一张桌面。
+        </p>
+        <div class="meta-bar">
+          <div class="meta-cell">
+            <span class="mc-label">期号</span>
+            <span class="mc-value" id="editionNo">No. ——</span>
+          </div>
+          <div class="meta-cell">
+            <span class="mc-label">今日</span>
+            <span class="mc-value" id="todayDate">——</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="figures reveal" style="animation-delay: 0.12s">
+        <div class="figure">
+          <div class="label">本月运动</div>
+          <div class="value" id="figExDuration">—</div>
+          <div class="note" id="figExNote">等待数据</div>
+        </div>
+        <div class="figure">
+          <div class="label" id="figSecondaryLabel">运动里程</div>
+          <div class="value" id="figDistance">—</div>
+          <div class="note" id="figTopActivity">主项 ——</div>
+        </div>
+        <div class="figure focus">
+          <div class="label">本月专注</div>
+          <div class="value" id="figFocus">—</div>
+          <div class="note" id="figFocusNote">番茄钟同步</div>
+        </div>
+        <div class="figure focus">
+          <div class="label">收录想法</div>
+          <div class="value" id="figNotes">—</div>
+          <div class="note">随手记下的念头</div>
+        </div>
+      </section>
+
+      <div class="layout">
+        <div class="column" id="primaryColumn">
+          <article class="card rhythm-card reveal" style="animation-delay: 0.18s">
+            <div class="card-head">
+              <div class="rhythm-head-copy">
+                <h2 id="rhythmTitle">运动节奏</h2>
+                <span class="kicker" id="rhythmKicker">近 12 周热度</span>
+                <div class="mood-subtools" id="moodSubtools" hidden>
+                  <span class="mood-label">月历</span>
+                  <span class="mood-month-wrap" id="moodMonthWrap">
+                    <select id="moodMonth" aria-label="情绪月份"></select>
+                  </span>
+                </div>
+              </div>
+              <div class="mode-toggle" id="modeToggle" aria-label="选择视图模式">
+                <button class="mode-btn active" data-mode="exercise" type="button">运动模式</button>
+                <button class="mode-btn" data-mode="focus" type="button">专注模式</button>
+                <button class="mode-btn" data-mode="mood" type="button">情绪模式</button>
+              </div>
+            </div>
+            <div class="rhythm-body">
+              <div class="heatmap-shell" id="rhythmVisual"></div>
+              <div class="mini-stats rhythm-stats" id="modeStats"></div>
+            </div>
+          </article>
+
+          <article class="card reveal" id="structureCard" style="animation-delay: 0.24s">
+            <div class="card-head">
+              <div>
+                <h2 id="structureTitle">运动结构</h2>
+                <span class="kicker" id="structureKicker">按项目拆分时长</span>
+              </div>
+              <span class="struct-select-wrap"><select id="structureMonth" aria-label="结构月份"></select></span>
+            </div>
+            <div class="cat-split">
+              <div class="cat-ring">
+                <canvas id="breakdownChart"></canvas>
+                <div class="ring-center">
+                  <div class="rc-label" id="ringLabel">本月合计</div>
+                  <div class="rc-value" id="ringTotal">—</div>
+                </div>
+              </div>
+              <div class="cat-table" id="breakdownTable"></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="column" id="notesColumn">
+          <article class="card notes-card reveal" id="notesCard" style="animation-delay: 0.22s">
+            <div class="card-head">
+              <h2>想法简报</h2>
+              <span class="kicker notes-count" id="notesCount">共 0 条</span>
+            </div>
+            <div class="notes-toolbar">
+              <div class="search-box">
+                <span class="si" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6"/><line x1="19.5" y1="19.5" x2="14.8" y2="14.8"/></svg></span>
+                <input id="noteSearch" type="text" placeholder="搜索想法 / 标签 / 正文" autocomplete="off" />
+                <button class="clear" id="searchClear" title="清除" aria-label="清除">×</button>
+              </div>
+              <div class="chips" id="catChips"></div>
+            </div>
+            <div class="notes-drag-hint" id="notesDragHint"></div>
+            <div class="notes-list" id="notesList"><div class="empty-state">载入中…</div></div>
+          </article>
+        </div>
+      </div>
+
+      <footer class="figures reveal" style="animation-delay: 0.4s; border-bottom: none; margin-top: 40px;">
+        <div class="figure" style="border-right: none; padding-left: 0;">
+          <div class="note" id="syncFoot">日课 · 运动 · 专注 · 想法 · 本地存档</div>
+        </div>
+      </footer>
+    </div>
+
+    <div class="modal-overlay" id="noteModal" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="想法全文">
+        <span class="modal-seal">記</span>
+        <button class="modal-close" id="modalClose" aria-label="关闭">×</button>
+        <div id="modalBody"></div>
+      </div>
+    </div>
+
+    <div class="mood-note-overlay" id="moodNoteModal" aria-hidden="true">
+      <div class="mood-note-dialog" role="dialog" aria-modal="true" aria-label="情绪备注">
+        <div class="mood-note-head">
+          <div class="mood-note-meta">
+            <div class="mood-note-glyph" id="moodNoteGlyph"></div>
+            <div class="mood-note-title" id="moodNoteTitle"></div>
+          </div>
+          <button class="mood-note-close" id="moodNoteClose" aria-label="关闭">×</button>
+        </div>
+        <div class="mood-note-body" id="moodNoteBody"></div>
+      </div>
+    </div>
+
+    <script>
+      const PALETTE = ["#c0432a", "#3f6f63", "#c0902f", "#7a4b52", "#4a5b6b", "#8a7f69"];
+      const state = {
+        breakdownChart: null,
+        summary: null,
+        structure: null,
+        structureMonth: null,
+        moodCalendar: null,
+        moodMonth: null,
+        selectedMoodDate: null,
+        availableCategories: [],
+        draggingNoteId: null,
+        draggingNoteTitle: "",
+        mode: "exercise",
+        query: "",
+        category: null,
+      };
+
+      const pad2 = (n) => String(n).padStart(2, "0");
+      const currentYM = () => {
+        const n = new Date();
+        return `${n.getFullYear()}-${pad2(n.getMonth() + 1)}`;
+      };
+      const monthLabel = (ym) => {
+        const [y, m] = ym.split("-");
+        return `${y} 年 ${Number(m)} 月`;
+      };
+      const fmtMinutes = (minutes) => {
+        const total = Math.max(Math.round(Number(minutes || 0)), 0);
+        const h = Math.floor(total / 60);
+        const m = total % 60;
+        if (h === 0) return `${m} 分`;
+        if (m === 0) return `${h} 时`;
+        return `${h} 时 ${m} 分`;
+      };
+      const fmtFocus = (seconds) => fmtMinutes(Math.floor(Number(seconds || 0) / 60));
+      const fmtKm = (value) => Number(value || 0).toLocaleString("zh-CN", { maximumFractionDigits: 1 });
+      const avg = (sum, count) => (count ? sum / count : 0);
+
+      // bespoke thin-line emotion icons (stroke = currentColor, tinted with the emotion color)
+      const SVG = (body) =>
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+      const MOOD_ICONS = {
+        "开心": SVG('<line x1="3.5" y1="17.5" x2="20.5" y2="17.5"/><path d="M8 17.5a4 4 0 0 1 8 0"/><line x1="12" y1="5.5" x2="12" y2="8"/><line x1="6" y1="8.6" x2="7.7" y2="10.3"/><line x1="18" y1="8.6" x2="16.3" y2="10.3"/>'),
+        "平静": SVG('<path d="M12 21v-8.5"/><path d="M12 13c0-3 2.3-5 5.4-5 0 3-2.3 5-5.4 5z"/><path d="M12 15c0-2.4-2-4-4.6-4 0 2.4 2 4 4.6 4z"/>'),
+        "焦虑": SVG('<path d="M12 4a8 8 0 1 1-7.6 5.6"/><path d="M12 8a4 4 0 1 1-3.5 2.2"/>'),
+        "难过": SVG('<path d="M7.5 14a3.4 3.4 0 0 1 .2-6.8A4.4 4.4 0 0 1 16 7a3.2 3.2 0 0 1 .3 7H7.5z"/><line x1="9" y1="17" x2="8" y2="20"/><line x1="13" y1="17" x2="12" y2="20"/><line x1="17" y1="17" x2="16" y2="20"/>'),
+        "恐惧": SVG('<path d="M16 13.2A6 6 0 1 1 9.4 5.4 4.7 4.7 0 0 0 16 13.2z"/>'),
+        "很难描述": SVG('<line x1="4.5" y1="9" x2="16" y2="9"/><line x1="8" y1="12.5" x2="19.5" y2="12.5"/><line x1="5.5" y1="16" x2="15" y2="16"/>'),
+        "自定义": SVG('<path d="M19 5C13 5 8.6 8.6 6.6 14L5 19"/><path d="M19 5c.6 5.6-2.6 10.2-8.2 11.7"/><path d="M9 13.5h5"/>'),
+      };
+      const MOOD_GLYPHS = {
+        "开心": "🙂",
+        "平静": "😌",
+        "焦虑": "😣",
+        "难过": "😞",
+        "恐惧": "😨",
+        "很难描述": "🫥",
+        "自定义": "✳️",
+      };
+      function moodColor(key) {
+        const pal = (state.summary && state.summary.mood_palette) || [];
+        const found = pal.find((e) => e.key === key);
+        return found ? found.color : "#6f6a3a";
+      }
+      function moodIcon(key, size = "18px") {
+        const svg = MOOD_ICONS[key] || MOOD_ICONS["自定义"];
+        return `<span class="mood-icon" style="color:${moodColor(key)};width:${size};height:${size}">${svg}</span>`;
+      }
+      function moodGlyph(key) {
+        return MOOD_GLYPHS[key] || "✳️";
+      }
+
+      async function getJSON(url) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${url} -> ${res.status}`);
+        return res.json();
+      }
+
+      async function postJSON(url, payload) {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `${url} -> ${res.status}`);
+        return data;
+      }
+
+      function escapeHtml(input) {
+        return String(input ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function escapeRegExp(input) {
+        return String(input).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      function highlight(text, query) {
+        const safe = escapeHtml(text);
+        if (!query) return safe;
+        const pattern = new RegExp(`(${escapeRegExp(query)})`, "ig");
+        return safe.replace(pattern, "<mark>$1</mark>");
+      }
+
+      function inline(text) {
+        return escapeHtml(text).replace(/\[\[([^\]]+)\]\]/g, "<strong>[[$1]]</strong>");
+      }
+
+      function populateMonths(months, selected) {
+        const sel = document.getElementById("structureMonth");
+        const cur = currentYM();
+        const values = months.length ? months : [cur];
+        sel.innerHTML = "";
+        values.forEach((ym) => {
+          const opt = document.createElement("option");
+          opt.value = ym;
+          opt.textContent = ym === cur ? `${monthLabel(ym)}（本月）` : monthLabel(ym);
+          sel.appendChild(opt);
+        });
+        if (!sel.dataset.bound) {
+          sel.addEventListener("change", () => loadStructure(sel.value));
+          sel.dataset.bound = "1";
+        }
+        sel.value = values.includes(selected) ? selected : values[0];
+      }
+
+      function populateMoodMonths(months, selected) {
+        const sel = document.getElementById("moodMonth");
+        const cur = currentYM();
+        const values = months.length ? months : [cur];
+        sel.innerHTML = "";
+        values.forEach((ym) => {
+          const opt = document.createElement("option");
+          opt.value = ym;
+          opt.textContent = ym === cur ? `${monthLabel(ym)}（本月）` : monthLabel(ym);
+          sel.appendChild(opt);
+        });
+        sel.value = values.includes(selected) ? selected : values[0];
+      }
+
+      function setEdition(data) {
+        const now = new Date();
+        const days = ["日", "一", "二", "三", "四", "五", "六"];
+        document.getElementById("todayDate").textContent =
+          `${now.getMonth() + 1} 月 ${now.getDate()} 日 · 周${days[now.getDay()]}`;
+        document.getElementById("editionNo").textContent = `No. ${data.this_month.replace("-", "")}`;
+
+        const sync = data.focus_sync || {};
+        const dot = document.getElementById("syncDot");
+        const label = document.getElementById("syncStatus");
+        if (sync.ok) {
+          dot.classList.remove("warn");
+          label.textContent = `番茄钟已同步 ${sync.synced_days} 天`;
+        } else {
+          dot.classList.add("warn");
+          label.textContent = sync.used_cached_data ? "同步异常 · 已使用缓存" : "番茄钟未同步";
+        }
+
+        const pathText = sync.source_path ? sync.source_path.split("/").slice(-2).join("/") : "未配置路径";
+        const lastSync = sync.last_synced_at ? `上次同步 ${sync.last_synced_at.replace("T", " ")}` : pathText;
+        document.getElementById("syncFoot").textContent = `日课 · 本地存档 · 手动刷新 · ${lastSync}`;
+      }
+
+      function renderFigures(data) {
+        const ex = data.exercise_summary || {};
+        const focus = data.focus_summary || {};
+        document.getElementById("figExDuration").textContent = fmtMinutes(ex.total_duration_minutes);
+        document.getElementById("figExNote").textContent = ex.count ? `本月 ${ex.count} 次` : "本月还没记运动";
+        // second figure adapts: show 里程 only when this month actually has distance,
+        // otherwise fall back to a universal metric (训练天数) so we never show a stray "0 公里"
+        const km = Number(ex.total_distance_km || 0);
+        const unitSpan = (text) => `<span style="font-size:0.5em;font-style:italic;color:var(--ink-faint);margin-left:5px;">${text}</span>`;
+        if (km > 0) {
+          document.getElementById("figSecondaryLabel").textContent = "运动里程";
+          document.getElementById("figDistance").innerHTML = `${fmtKm(km)}${unitSpan("公里")}`;
+        } else {
+          document.getElementById("figSecondaryLabel").textContent = "训练天数";
+          document.getElementById("figDistance").innerHTML = `${ex.active_days || 0}${unitSpan("天")}`;
+        }
+        const topThisMonth =
+          (data.structure && data.structure.activity_breakdown && data.structure.activity_breakdown[0] && data.structure.activity_breakdown[0].activity) || "——";
+        document.getElementById("figTopActivity").textContent = `主项 ${topThisMonth}`;
+        document.getElementById("figFocus").textContent = fmtFocus(focus.total_focus_seconds);
+        document.getElementById("figFocusNote").textContent = `${focus.days_with_focus || 0} 天 · ${focus.total_trees || 0} 个番茄`;
+      }
+
+      // ---- heatmap + side stats: rolling window (today-anchored), NOT month-scoped ----
+      function heatmapSlice() {
+        const d = state.summary;
+        const wk = d.heatmap_weeks || 12;
+        if (state.mode === "mood") {
+          return {
+            title: "情绪节奏",
+            kicker: `近 ${wk} 周心情日历`,
+            weeks: d.mood_heatmap || [],
+            describe: (cell) => `${cell.date} · ${cell.emotion || "未记"}`,
+          };
+        }
+        if (state.mode === "focus") {
+          return {
+            title: "专注节奏",
+            kicker: `近 ${wk} 周番茄热力`,
+            note: "颜色越深，代表当天投入的专注时长越多。",
+            weeks: d.focus_heatmap || [],
+            describe: (cell) => `${cell.date} · ${cell.value ? fmtFocus(cell.value) : "未专注"}`,
+          };
+        }
+        return {
+          title: "运动节奏",
+          kicker: `近 ${wk} 周训练热力`,
+          note: "颜色越深，代表当天训练时长越多。",
+          weeks: d.exercise_heatmap || [],
+          describe: (cell) => `${cell.date} · ${cell.value ? fmtMinutes(cell.value) : "未训练"}`,
+        };
+      }
+
+      function statsSlice() {
+        const d = state.summary;
+        if (state.mode === "mood") {
+          const cal = state.moodCalendar || {};
+          return [
+            { label: "记录天数", value: `${cal.logged_days || 0} 天` },
+            { label: "主导情绪", value: cal.top_emotion || "—", icon: cal.top_emotion || null },
+            { label: "有备注", value: `${cal.noted_days || 0} 天` },
+          ];
+        }
+        if (state.mode === "focus") {
+          const f = d.focus_window || {};
+          return [
+            { label: "专注天数", value: `${f.days_with_focus || 0} 天` },
+            { label: "完成番茄", value: `${f.total_trees || 0} 个` },
+            { label: "日均专注", value: f.days_with_focus ? fmtFocus(avg(f.total_focus_seconds, f.days_with_focus)) : "—" },
+          ];
+        }
+        const e = d.exercise_window || {};
+        const km = Number(e.total_distance_km || 0);
+        // distance isn't its own box — it tucks under 热门项目 as small text, only when it exists
+        return [
+          { label: "训练天数", value: `${e.active_days || 0} 天` },
+          { label: "累计时长", value: fmtMinutes(e.total_duration_minutes) },
+          { label: "热门项目", value: e.top_activity || "—", note: km > 0 ? `累计 ${fmtKm(km)} 公里` : "" },
+        ];
+      }
+
+      // ---- structure: month-scoped (driven by the structure card's own picker) ----
+      function structureSlice() {
+        const s = state.structure || {};
+        const label = monthLabel(s.month || currentYM());
+        if (state.mode === "mood") {
+          return {
+            title: `情绪占比 · ${label}`,
+            kicker: "按情绪统计天数",
+            rows: (s.mood_distribution || []).map((row) => ({
+              name: row.emotion,
+              sub: `${row.count} 天`,
+              value: row.count,
+              metric: `${row.count} 天`,
+              color: row.color,
+              icon: row.emotion,
+            })),
+            totalLabel: "记录天数",
+            totalValue: `${s.mood_total_days || 0} 天`,
+            empty: "本月还没有记录心情。",
+          };
+        }
+        if (state.mode === "focus") {
+          return {
+            title: `专注结构 · ${label}`,
+            kicker: "按项目拆分专注时长",
+            rows: (s.focus_project_breakdown || []).map((row) => ({
+              name: row.project,
+              sub: `${row.trees_completed} 个番茄`,
+              value: row.focus_seconds,
+              metric: fmtFocus(row.focus_seconds),
+            })),
+            totalLabel: "当月专注",
+            totalValue: fmtFocus(s.focus_total_seconds),
+            empty: "这月还没有同步到项目级专注分布。",
+          };
+        }
+        return {
+          title: `运动结构 · ${label}`,
+          kicker: "按项目拆分训练时长",
+          rows: (s.activity_breakdown || []).map((row) => ({
+            name: row.activity,
+            sub: `${row.count} 次`,
+            value: row.total_duration_minutes,
+            metric: fmtMinutes(row.total_duration_minutes),
+          })),
+          totalLabel: "当月合计",
+          totalValue: fmtMinutes(s.exercise_total_minutes),
+          empty: "本月还没有运动记录。",
+        };
+      }
+
+      function renderModeToggle() {
+        document.querySelectorAll(".mode-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.mode === state.mode);
+        });
+      }
+
+      function renderMoodSubviewToggle() {
+        const tools = document.getElementById("moodSubtools");
+        const show = state.mode === "mood";
+        tools.hidden = !show;
+        tools.style.display = show ? "" : "none";
+      }
+
+      function legendMarkup() {
+        return '<div class="legend-scale"><span>稀</span><span class="legend-swatches"><i></i><i></i><i></i><i></i><i></i></span><span>密</span></div>';
+      }
+
+      function renderHeatmap(view) {
+        document.getElementById("rhythmTitle").textContent = view.title;
+        document.getElementById("rhythmKicker").textContent = view.kicker;
+        const shell = document.getElementById("rhythmVisual");
+        shell.className = "heatmap-shell";
+        shell.innerHTML = `
+          <div class="heatmap-frame">
+            <div class="weekday-stack">
+              <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+            </div>
+            <div class="heatmap-main">
+              <div class="week-labels"></div>
+              <div class="heatmap-grid"></div>
+            </div>
+          </div>
+          <div class="heatmap-legend">${legendMarkup()}</div>`;
+
+        const weeks = view.weeks || [];
+        const weekLabels = shell.querySelector(".week-labels");
+        const heatmapGrid = shell.querySelector(".heatmap-grid");
+        weekLabels.style.gridTemplateColumns = `repeat(${Math.max(weeks.length, 1)}, 17px)`;
+        heatmapGrid.style.gridTemplateColumns = `repeat(${Math.max(weeks.length, 1)}, 17px)`;
+
+        if (!weeks.length) {
+          weekLabels.innerHTML = "";
+          heatmapGrid.innerHTML = '<div class="empty-state">还没有可展示的节奏数据。</div>';
+          return;
+        } else {
+          weekLabels.innerHTML = weeks
+            .map((week, index) => {
+              const first = week[0] || {};
+              const month = Number(String(first.date || "").slice(5, 7));
+              const prev = index > 0 ? Number(String((weeks[index - 1][0] || {}).date || "").slice(5, 7)) : null;
+              const label = index === 0 || month !== prev ? `${month}月` : "";
+              return `<span>${label}</span>`;
+            })
+            .join("");
+
+          heatmapGrid.innerHTML = weeks
+            .map(
+              (week) => `
+                <div class="week-column">
+                  ${week
+                    .map((cell) => {
+                      if (cell.is_future) return '<div class="heat-cell future"></div>';
+                      if (cell.color) return `<div class="heat-cell" style="background:${cell.color}" title="${escapeHtml(view.describe(cell))}"></div>`;
+                      return `<div class="heat-cell level-${cell.level || 0}" title="${escapeHtml(view.describe(cell))}"></div>`;
+                    })
+                    .join("")}
+                </div>`
+            )
+            .join("");
+        }
+      }
+
+      function selectedMoodCell(calendarView) {
+        const cells = (calendarView.weeks || []).flat();
+        const exact = cells.find((cell) => cell.date === state.selectedMoodDate && cell.in_month);
+        if (exact) return exact;
+        const todayCell = cells.find((cell) => cell.is_today && cell.in_month);
+        if (todayCell && todayCell.emotion) return todayCell;
+        const recent = [...cells].reverse().find((cell) => cell.in_month && cell.emotion);
+        return recent || null;
+      }
+
+      function renderMoodCalendar(calendarView) {
+        document.getElementById("rhythmTitle").textContent = "情绪节奏";
+        document.getElementById("rhythmKicker").textContent = "按月份查看每天的心情记录";
+
+        const shell = document.getElementById("rhythmVisual");
+        shell.className = "heatmap-shell calendar-shell";
+
+        const weeks = calendarView.weeks || [];
+        const palette = ((state.summary && state.summary.mood_palette) || []).filter((row) => row.key !== "自定义");
+        const distribution = calendarView.distribution || [];
+        const byEmotion = new Map(distribution.map((row) => [row.emotion, row]));
+        const customRow = distribution.find((row) => row.emotion === "自定义");
+        const legendRows = [
+          ...palette.map((row) => byEmotion.get(row.key) || { emotion: row.key, count: 0, ratio: 0 }),
+          ...(customRow ? [customRow] : []),
+        ];
+
+        shell.innerHTML = `
+          <div class="mood-calendar">
+            <div class="calendar-weekdays">
+              <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+            </div>
+            <div class="calendar-grid">
+              ${weeks
+                .flat()
+                .map((cell) => {
+                  const classes = [
+                    "mood-day",
+                    cell.in_month ? "" : "outside",
+                    cell.is_future ? "future" : "",
+                    cell.is_today ? "today" : "",
+                    state.selectedMoodDate === cell.date ? "active" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
+                  const mark = cell.emotion
+                    ? `<button class="mood-day-icon" type="button" data-mood-date="${cell.date}" aria-label="${escapeHtml(cell.date)} ${escapeHtml(cell.emotion)}">${moodIcon(cell.emotion, "20px")}</button>`
+                    : '<span class="mood-day-mark empty" aria-hidden="true"></span>';
+                  return `
+                    <div class="${classes}">
+                      <span class="mood-day-date">${cell.day}</span>
+                      ${mark}
+                    </div>`;
+                })
+                .join("")}
+            </div>
+          </div>
+          <div class="mood-dist-panel">
+            <div class="mood-dist-list">
+              ${
+                legendRows.length
+                  ? legendRows
+                      .map(
+                        (row) => `
+                          <div class="mood-dist-chip ${row.count ? "" : "zero"}">
+                            <div class="mood-dist-line">
+                              <span class="mood-dist-main">
+                                ${moodIcon(row.emotion, "15px")}
+                                <strong>${escapeHtml(row.emotion)}</strong>
+                              </span>
+                              <span class="mood-dist-pct">${row.count ? `${row.count}天 · ${Math.round((row.ratio || 0) * 100)}%` : "未记录"}</span>
+                            </div>
+                            <span class="mood-dist-bar"><i class="mood-dist-fill" style="width:${Math.max(0, Math.min(100, Math.round((row.ratio || 0) * 100)))}%;background:${moodColor(row.emotion)}"></i></span>
+                          </div>`
+                      )
+                      .join("")
+                  : '<span class="empty-state" style="padding:0;text-align:left;">本月还没有情绪记录。</span>'
+              }
+            </div>
+          </div>`;
+
+        shell.querySelectorAll("[data-mood-date]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const targetDate = btn.dataset.moodDate || null;
+            const targetCell = (weeks.flat() || []).find((cell) => cell.date === targetDate);
+            state.selectedMoodDate = targetDate;
+            renderRhythmVisual();
+            if (targetCell && targetCell.emotion) {
+              openMoodNote(targetCell);
+            }
+          });
+        });
+      }
+
+      function renderRhythmVisual() {
+        renderMoodSubviewToggle();
+        const rhythmBody = document.querySelector(".rhythm-body");
+        rhythmBody.classList.toggle("mood-calendar-mode", state.mode === "mood");
+        if (state.mode === "mood") {
+          renderMoodCalendar(state.moodCalendar || { month: state.moodMonth || currentYM(), weeks: [] });
+          return;
+        }
+        renderHeatmap(heatmapSlice());
+      }
+
+      function renderModeStats(stats) {
+        const root = document.getElementById("modeStats");
+        root.innerHTML = stats
+          .map(
+            (item) => `
+              <div class="mini-stat">
+                <div class="ms-label">${escapeHtml(item.label)}</div>
+                <div class="ms-value">${item.icon ? moodIcon(item.icon, "18px") : ""}${escapeHtml(item.value)}${item.note ? `<span class="ms-inline">${escapeHtml(item.note)}</span>` : ""}</div>
+              </div>`
+          )
+          .join("");
+      }
+
+      function openMoodNote(cell) {
+        document.getElementById("moodNoteGlyph").innerHTML = moodIcon(cell.emotion || "自定义", "18px");
+        document.getElementById("moodNoteTitle").textContent = `${cell.date} · ${cell.emotion || "未记录"}`;
+        document.getElementById("moodNoteBody").textContent =
+          cell.note || (cell.emotion ? "这天没有写备注。" : "这天还没有记录情绪。");
+        const overlay = document.getElementById("moodNoteModal");
+        overlay.classList.add("open");
+        overlay.setAttribute("aria-hidden", "false");
+      }
+
+      function closeMoodNote() {
+        const overlay = document.getElementById("moodNoteModal");
+        overlay.classList.remove("open");
+        overlay.setAttribute("aria-hidden", "true");
+      }
+
+      function renderStructure(view) {
+        document.getElementById("structureTitle").textContent = view.title;
+        document.getElementById("structureKicker").textContent = view.kicker;
+        document.getElementById("ringLabel").textContent = view.totalLabel;
+        document.getElementById("ringTotal").textContent = view.totalValue;
+
+        const values = view.rows.map((row) => row.value);
+        const labels = view.rows.map((row) => row.name);
+        const chartData = values.length ? values : [1];
+        const chartLabels = labels.length ? labels : ["暂无"];
+        const chartColors = values.length
+          ? view.rows.map((row, index) => row.color || PALETTE[index % PALETTE.length])
+          : ["rgba(138, 127, 105, 0.2)"];
+        const ctx = document.getElementById("breakdownChart");
+
+        state.breakdownChart?.destroy();
+        state.breakdownChart = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: chartLabels,
+            datasets: [
+              {
+                data: chartData,
+                backgroundColor: chartColors,
+                borderColor: "#f7f0e1",
+                borderWidth: 2,
+                hoverOffset: values.length ? 6 : 0,
+              },
+            ],
+          },
+          options: {
+            maintainAspectRatio: false,
+            cutout: "68%",
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                enabled: Boolean(values.length),
+                backgroundColor: "#221c14",
+                bodyFont: { family: "Fraunces", size: 13 },
+                padding: 10,
+                callbacks: {
+                  label: (ctxItem) => ` ${ctxItem.label} · ${view.rows[ctxItem.dataIndex].metric}`,
+                },
+              },
+            },
+          },
+        });
+
+        const table = document.getElementById("breakdownTable");
+        if (!view.rows.length) {
+          table.innerHTML = `<div class="empty-state">${view.empty}</div>`;
+          return;
+        }
+
+        const total = values.reduce((sum, value) => sum + value, 0) || 1;
+        table.innerHTML = view.rows
+          .map((row, index) => {
+            const pct = `${Math.round((row.value / total) * 100)}%`;
+            const mark = row.icon
+              ? `<span class="cat-icon">${moodIcon(row.icon, "16px")}</span>`
+              : `<span class="cat-swatch" style="background:${row.color || PALETTE[index % PALETTE.length]}"></span>`;
+            return `
+              <div class="cat-row">
+                ${mark}
+                <span class="cat-name">${escapeHtml(row.name)}<span class="pct">${escapeHtml(row.sub)} · ${pct}</span></span>
+                <span class="cat-amt">${escapeHtml(row.metric)}</span>
+              </div>`;
+          })
+          .join("");
+      }
+
+      function renderStructureCard() {
+        const card = document.getElementById("structureCard");
+        if (!card) return;
+        const hidden = state.mode === "mood";
+        card.hidden = hidden;
+        card.style.display = hidden ? "none" : "";
+        if (!hidden && state.structure) {
+          renderStructure(structureSlice());
+        }
+      }
+
+      function renderModePanels() {
+        if (!state.summary) return;
+        renderModeToggle();
+        renderRhythmVisual();
+        renderModeStats(statsSlice());
+        renderStructureCard();
+        scheduleNotesHeightLock();
+      }
+
+      async function loadStructure(month) {
+        const data = await getJSON(`/api/structure?month=${encodeURIComponent(month)}`);
+        state.structure = data;
+        state.structureMonth = data.month;
+        if (state.mode !== "mood") {
+          renderStructure(structureSlice());
+        }
+      }
+
+      async function loadMoodCalendar(month) {
+        const data = await getJSON(`/api/mood-calendar?month=${encodeURIComponent(month)}`);
+        state.moodCalendar = data;
+        state.moodMonth = data.month;
+        state.selectedMoodDate = null;
+        populateMoodMonths(state.summary?.available_months || [], data.month);
+        if (state.mode === "mood") {
+          renderRhythmVisual();
+          renderModeStats(statsSlice());
+        }
+      }
+
+      function setDragHint(message, isError = false) {
+        const el = document.getElementById("notesDragHint");
+        el.textContent = message;
+        el.style.color = isError ? "var(--cinnabar-deep)" : "var(--ink-faint)";
+      }
+
+      async function updateNoteCategory(noteId, category) {
+        return postJSON(`/api/notes/${noteId}/category`, { category });
+      }
+
+      function handleDragStart(note, el, event) {
+        state.draggingNoteId = note.id;
+        state.draggingNoteTitle = note.title;
+        el.classList.add("dragging");
+        if (event.dataTransfer) {
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", String(note.id));
+        }
+        setDragHint(`拖拽中：${note.title}。把它放到一个分类标签上即可改分类。`);
+      }
+
+      function clearDraggingState() {
+        state.draggingNoteId = null;
+        state.draggingNoteTitle = "";
+        document.querySelectorAll(".note-item").forEach((el) => el.classList.remove("dragging"));
+        document.querySelectorAll(".chip").forEach((el) => el.classList.remove("drop-active"));
+        setDragHint("");
+      }
+
+      function renderNotes(notes) {
+        const root = document.getElementById("notesList");
+        root.innerHTML = "";
+        if (!notes.length) {
+          root.innerHTML = `<div class="empty-state">${
+            state.query || state.category
+              ? "没有匹配的想法，换个关键词或分类试试。"
+              : "还没有想法简报，去微信或 CLI 里记下第一个念头吧。"
+          }</div>`;
+          return;
+        }
+        notes.forEach((note) => {
+          const btn = document.createElement("button");
+          btn.className = "note-item";
+          btn.draggable = true;
+          btn.dataset.noteId = note.id;
+          const tags = (note.tags || []).slice(0, 3).map((tag) => `#${escapeHtml(tag)}`).join(" ");
+          const snippet = note.snippet ? `<div class="note-snippet">${highlight(note.snippet, state.query)}</div>` : "";
+          btn.innerHTML = `
+            <div class="note-top">
+              <span class="note-title">${highlight(note.title, state.query)}</span>
+              <span class="note-cat">${escapeHtml(note.category)}</span>
+            </div>
+            <div class="note-meta">
+              <span>${note.created_at.replace("T", " ").slice(0, 16)}</span>
+              <span class="note-tag">${tags}</span>
+            </div>
+            ${snippet}`;
+          btn.addEventListener("click", async () => {
+            document.querySelectorAll(".note-item").forEach((el) => el.classList.remove("active"));
+            btn.classList.add("active");
+            await openModal(note.id);
+          });
+          btn.addEventListener("dragstart", (event) => handleDragStart(note, btn, event));
+          btn.addEventListener("dragend", clearDraggingState);
+          root.appendChild(btn);
+        });
+      }
+
+      function renderChips(categories) {
+        const root = document.getElementById("catChips");
+        const countMap = new Map((categories || []).map((item) => [item.category, item.count]));
+        const allCategories = Array.from(new Set([...(state.availableCategories || []), ...countMap.keys()])).filter(Boolean);
+        const total = Array.from(countMap.values()).reduce((sum, count) => sum + count, 0);
+        document.getElementById("figNotes").textContent = total;
+        root.innerHTML = [
+          `<button class="chip ${state.category ? "" : "active"}" data-cat="">全部<span class="c">${total}</span></button>`,
+          ...allCategories.map(
+            (category) => `<button class="chip droppable ${state.category === category ? "active" : ""}" data-cat="${escapeHtml(category)}">${escapeHtml(category)}<span class="c">${countMap.get(category) || 0}</span></button>`
+          ),
+        ].join("");
+
+        if (!root.dataset.bound) {
+          root.addEventListener("click", async (event) => {
+            const chip = event.target.closest(".chip");
+            if (!chip) return;
+            if (state.draggingNoteId && chip.dataset.cat) {
+              event.preventDefault();
+              return;
+            }
+            state.category = chip.dataset.cat || null;
+            await loadNotes();
+          });
+          root.addEventListener("dragover", (event) => {
+            const chip = event.target.closest(".chip.droppable");
+            if (!chip || !state.draggingNoteId) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+          });
+          root.addEventListener("dragenter", (event) => {
+            const chip = event.target.closest(".chip.droppable");
+            if (!chip || !state.draggingNoteId) return;
+            chip.classList.add("drop-active");
+          });
+          root.addEventListener("dragleave", (event) => {
+            const chip = event.target.closest(".chip.droppable");
+            if (!chip) return;
+            chip.classList.remove("drop-active");
+          });
+          root.addEventListener("drop", async (event) => {
+            const chip = event.target.closest(".chip.droppable");
+            if (!chip || !state.draggingNoteId) return;
+            event.preventDefault();
+            chip.classList.remove("drop-active");
+            const targetCategory = chip.dataset.cat || "";
+            if (!targetCategory) {
+              clearDraggingState();
+              return;
+            }
+            setDragHint(`正在把「${state.draggingNoteTitle}」移到 ${targetCategory}…`);
+            try {
+              await updateNoteCategory(state.draggingNoteId, targetCategory);
+              await loadNotes();
+              setDragHint(`已把「${state.draggingNoteTitle}」移到 ${targetCategory}。`);
+            } catch (error) {
+              setDragHint(error.message || String(error), true);
+            } finally {
+              state.draggingNoteId = null;
+              state.draggingNoteTitle = "";
+              document.querySelectorAll(".note-item").forEach((el) => el.classList.remove("dragging"));
+            }
+          });
+          root.dataset.bound = "1";
+        }
+      }
+
+      async function loadNotes() {
+        const params = new URLSearchParams();
+        if (state.query) params.set("q", state.query);
+        if (state.category) params.set("category", state.category);
+        const query = params.toString();
+        const data = await getJSON(`/api/notes${query ? `?${query}` : ""}`);
+        state.availableCategories = Array.from(
+          new Set([
+            ...(data.configured_categories || []),
+            ...((data.categories || []).map((item) => item.category)),
+          ])
+        );
+        renderChips(data.categories || []);
+        renderNotes(data.notes || []);
+        document.getElementById("notesCount").textContent =
+          state.query || state.category ? `命中 ${data.notes.length} 条` : `共 ${data.notes.length} 条`;
+        scheduleNotesHeightLock();
+      }
+
+      function setupNotesControls() {
+        const input = document.getElementById("noteSearch");
+        const clearBtn = document.getElementById("searchClear");
+        let timer;
+        input.addEventListener("input", () => {
+          clearBtn.classList.toggle("show", Boolean(input.value));
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            state.query = input.value.trim();
+            loadNotes();
+          }, 220);
+        });
+        clearBtn.addEventListener("click", () => {
+          input.value = "";
+          clearBtn.classList.remove("show");
+          state.query = "";
+          loadNotes();
+          input.focus();
+        });
+      }
+
+      async function openModal(noteId) {
+        const note = await getJSON(`/api/notes/${noteId}`);
+        const tags = (note.tags || []).map((tag) => `<span class="m-tag">#${escapeHtml(tag)}</span>`).join(" ");
+        document.getElementById("modalBody").innerHTML = `
+          <p class="m-eyebrow">${escapeHtml(note.category)}</p>
+          <h3 class="m-title">${escapeHtml(note.title)}</h3>
+          <div class="m-meta"><span>收录于 ${note.created_at.replace("T", " ").slice(0, 16)}</span>${tags}</div>
+          <div class="markdown">${renderMarkdown(note.content || "")}</div>
+          <div class="m-foot"><a class="m-permalink" href="/note/${note.id}" target="_blank" rel="noopener">独立页阅读 ↗</a></div>`;
+        const overlay = document.getElementById("noteModal");
+        overlay.classList.add("open");
+        overlay.setAttribute("aria-hidden", "false");
+        overlay.querySelector(".modal").scrollTop = 0;
+        history.replaceState(null, "", `#note-${note.id}`);
+      }
+
+      function closeModal() {
+        const overlay = document.getElementById("noteModal");
+        overlay.classList.remove("open");
+        overlay.setAttribute("aria-hidden", "true");
+        document.querySelectorAll(".note-item").forEach((el) => el.classList.remove("active"));
+        history.replaceState(null, "", location.pathname + location.search);
+      }
+
+      function openFromHash() {
+        const match = location.hash.match(/^#note-(\d+)$/);
+        if (match) openModal(Number(match[1]));
+      }
+
+      function setupModal() {
+        const overlay = document.getElementById("noteModal");
+        document.getElementById("modalClose").addEventListener("click", closeModal);
+        overlay.addEventListener("click", (event) => {
+          if (event.target === overlay) closeModal();
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && overlay.classList.contains("open")) closeModal();
+        });
+        window.addEventListener("hashchange", openFromHash);
+      }
+
+      function setupMoodNoteModal() {
+        const overlay = document.getElementById("moodNoteModal");
+        document.getElementById("moodNoteClose").addEventListener("click", closeMoodNote);
+        overlay.addEventListener("click", (event) => {
+          if (event.target === overlay) closeMoodNote();
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && overlay.classList.contains("open")) closeMoodNote();
+        });
+      }
+
+      function setupModeToggle() {
+        document.getElementById("modeToggle").addEventListener("click", (event) => {
+          const btn = event.target.closest(".mode-btn");
+          if (!btn || btn.dataset.mode === state.mode) return;
+          state.mode = btn.dataset.mode;
+          renderModePanels();
+        });
+      }
+
+      function setupMoodControls() {
+        document.getElementById("moodMonth").addEventListener("change", async (event) => {
+          await loadMoodCalendar(event.target.value);
+        });
+      }
+
+      let notesHeightRaf = null;
+
+      function lockNotesPanelHeight() {
+        const leftColumn = document.getElementById("primaryColumn");
+        const notesColumn = document.getElementById("notesColumn");
+        const notesCard = document.getElementById("notesCard");
+        if (!leftColumn || !notesColumn || !notesCard) return;
+
+        if (window.matchMedia("(max-width: 1080px)").matches) {
+          notesColumn.style.height = "";
+          notesCard.style.height = "";
+          return;
+        }
+
+        const leftHeight = Math.ceil(leftColumn.getBoundingClientRect().height);
+        if (leftHeight <= 0) return;
+
+        notesColumn.style.height = `${leftHeight}px`;
+        notesCard.style.height = `${leftHeight}px`;
+      }
+
+      function scheduleNotesHeightLock() {
+        if (notesHeightRaf) cancelAnimationFrame(notesHeightRaf);
+        notesHeightRaf = requestAnimationFrame(() => {
+          notesHeightRaf = null;
+          lockNotesPanelHeight();
+        });
+      }
+
+      function renderMarkdown(src) {
+        const lines = src.replace(/^---[\s\S]*?---\s*/, "").split("\n");
+        let html = "";
+        let inList = false;
+        const closeList = () => {
+          if (inList) {
+            html += "</ul>";
+            inList = false;
+          }
+        };
+        lines.forEach((raw) => {
+          const line = raw.trimEnd();
+          let match;
+          if ((match = line.match(/^#{1,3}\s+(.*)/))) {
+            closeList();
+            html += `<h2>${inline(match[1])}</h2>`;
+          } else if ((match = line.match(/^[-*]\s+\[( |x|X)\]\s+(.*)/))) {
+            if (!inList) {
+              html += "<ul>";
+              inList = true;
+            }
+            html += `<li class="${match[1].toLowerCase() === "x" ? "done" : "todo"}">${inline(match[2])}</li>`;
+          } else if ((match = line.match(/^[-*]\s+(.*)/))) {
+            if (!inList) {
+              html += "<ul>";
+              inList = true;
+            }
+            html += `<li>${inline(match[1])}</li>`;
+          } else if (!line.trim()) {
+            closeList();
+          } else {
+            closeList();
+            html += `<p>${inline(line)}</p>`;
+          }
+        });
+        closeList();
+        return html;
+      }
+
+      async function loadSummary() {
+        try {
+          const data = await getJSON("/api/summary");
+          state.summary = data;
+          state.structure = data.structure || null;
+          state.structureMonth = data.this_month;
+          state.moodMonth = data.this_month;
+          state.moodCalendar = data.mood_calendar || null;
+          populateMonths(data.available_months || [], data.this_month);
+          populateMoodMonths(data.available_months || [], state.moodMonth);
+          setEdition(data);
+          renderFigures(data);
+          const urlMode = new URLSearchParams(location.search).get("mode");
+          if (["exercise", "focus", "mood"].includes(urlMode)) state.mode = urlMode;
+          renderModePanels();
+          await loadNotes();
+          scheduleNotesHeightLock();
+          openFromHash();
+        } catch (error) {
+          console.error(error);
+          document.getElementById("syncStatus").textContent = "加载失败";
+          document.getElementById("notesList").innerHTML =
+            `<div class="empty-state">页面加载失败：${escapeHtml(error.message || String(error))}</div>`;
+        }
+      }
+
+      setupNotesControls();
+      setupModal();
+      setupMoodNoteModal();
+      setupModeToggle();
+      setupMoodControls();
+      window.addEventListener("resize", scheduleNotesHeightLock);
+      loadSummary();
+    </script>
+  </body>
+</html>
