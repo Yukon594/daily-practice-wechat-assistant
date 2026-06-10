@@ -263,6 +263,57 @@
       .mlegend span .mi { width: 15px; height: 15px; display: inline-flex; }
       .mlegend span .mi svg { width: 100%; height: 100%; }
 
+      /* centered bullets (slides 2 & 3) */
+      .blist.tc { align-items: center; text-align: center; margin-inline: auto; }
+      .blist.tc li { padding-left: 0; }
+      .blist.tc li::before { content: "❧"; position: static; margin-right: 0.5em; }
+
+      /* slide 7 — faithful exercise/focus heatmap card */
+      .hm { display: grid; grid-template-columns: auto 1fr; gap: clamp(5px, 1vw, 10px); }
+      .hm-week { display: grid; grid-template-rows: repeat(7, 1fr); gap: clamp(2px, 0.4vw, 4px); padding-top: clamp(13px, 1.8vh, 20px); font-family: var(--display); font-size: clamp(0.5rem, 0.9vw, 0.66rem); color: var(--ink-faint); }
+      .hm-week span { display: flex; align-items: center; justify-content: center; }
+      .hm-months { display: flex; gap: clamp(8px, 3.4vw, 34px); font-family: var(--display); font-size: clamp(0.5rem, 0.9vw, 0.66rem); color: var(--ink-faint); margin-bottom: clamp(3px, 0.6vh, 6px); }
+      .hm-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: clamp(2px, 0.4vw, 4px); }
+      .hm-grid i { width: clamp(8px, 1.4vw, 15px); height: clamp(8px, 1.4vw, 15px); border-radius: 2px; background: rgba(138, 127, 105, 0.14); display: block; }
+      .hm-grid i.l1 { background: rgba(192, 144, 47, 0.34); }
+      .hm-grid i.l2 { background: rgba(192, 144, 47, 0.6); }
+      .hm-grid i.l3 { background: rgba(192, 67, 42, 0.7); }
+      .hm-grid i.l4 { background: rgba(63, 111, 99, 0.85); }
+      .hm-grid i.bl { background: transparent; }
+      .hm-legend { display: flex; align-items: center; gap: 6px; margin-top: clamp(0.5rem, 1.2vh, 0.9rem); font-family: var(--display); font-size: var(--small-size); color: var(--ink-faint); }
+      .hm-legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; border: 1px solid rgba(34, 28, 20, 0.08); }
+      .hm-legend i.a { background: rgba(138, 127, 105, 0.14); }
+      .hm-legend i.b { background: rgba(192, 144, 47, 0.34); }
+      .hm-legend i.c { background: rgba(192, 144, 47, 0.6); }
+      .hm-legend i.d { background: rgba(192, 67, 42, 0.7); }
+      .hm-legend i.e { background: rgba(63, 111, 99, 0.85); }
+
+      /* right-side mini stat boxes (slide 7) */
+      .rstats { display: grid; gap: clamp(0.45rem, 1.1vh, 0.75rem); }
+      .rs { border: 1px solid var(--rule-soft); border-radius: 4px; padding: clamp(0.45rem, 1.1vw, 0.75rem) clamp(0.6rem, 1.3vw, 0.95rem); background: rgba(255, 255, 255, 0.35); }
+      .rs .k { font-family: var(--display); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); }
+      .rs .v { font-family: var(--display); font-weight: 600; font-size: clamp(0.9rem, 1.6vw, 1.2rem); margin-top: 0.12em; }
+      .rs .v small { font-family: var(--body); font-weight: 400; font-size: 0.66rem; color: var(--ink-faint); margin-left: 0.4em; }
+
+      /* slide 8 — emotion MONTH CALENDAR */
+      .mcal-head { display: grid; grid-template-columns: repeat(7, 1fr); gap: clamp(3px, 0.6vw, 6px); font-family: var(--display); font-size: clamp(0.5rem, 0.9vw, 0.66rem); color: var(--ink-faint); text-align: center; margin-bottom: clamp(3px, 0.6vh, 6px); }
+      .mcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: clamp(3px, 0.65vw, 6px); }
+      .mcal-grid .d { aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: clamp(0.5rem, 0.95vw, 0.7rem); color: var(--ink-soft); background: rgba(138, 127, 105, 0.13); }
+      .mcal-grid .d.rec { color: #f7eede; }
+      .mcal-grid .d.muted { opacity: 0.32; }
+      .mcal-grid .d.today { outline: 1.6px solid var(--cinnabar); outline-offset: -1.6px; font-weight: 600; }
+
+      /* slide 8 — mini ideas-briefing card */
+      .mini-search { display: flex; align-items: center; gap: 7px; border: 1px solid var(--rule-soft); border-bottom: 1.5px solid var(--rule); border-radius: 2px; padding: clamp(0.4rem, 1vw, 0.6rem) clamp(0.5rem, 1.2vw, 0.8rem); font-family: var(--display); font-style: italic; font-size: var(--small-size); color: var(--ink-faint); background: rgba(255, 252, 244, 0.5); margin-bottom: clamp(0.5rem, 1.2vh, 0.85rem); }
+      .mini-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: clamp(0.5rem, 1.2vh, 0.85rem); }
+      .mini-chips span { font-family: var(--display); font-size: 0.62rem; border: 1px solid var(--rule); border-radius: 999px; padding: 2px 8px; color: var(--ink-soft); }
+      .mini-chips span.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+      .mini-notes { display: flex; flex-direction: column; }
+      .mn { padding: clamp(0.4rem, 1vh, 0.6rem) 0; border-bottom: 1px solid var(--rule-soft); display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+      .mn:last-child { border-bottom: none; }
+      .mn b { font-family: var(--display); font-weight: 500; font-size: clamp(0.76rem, 1.4vw, 1rem); }
+      .mn span { flex: none; font-family: var(--display); font-size: 0.56rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--celadon); border: 1px solid rgba(63, 111, 99, 0.3); border-radius: 2px; padding: 1px 6px; }
+
       /* ===========================================
          ARCHITECTURE FLOW (slide 4)
          =========================================== */
@@ -330,13 +381,13 @@
     </section>
 
     <!-- === SLIDE 2 — WHY === -->
-    <section class="slide">
+    <section class="slide" id="s2">
       <div class="topline"><span class="tl-left">为什么</span><span>02 / 10</span></div>
-      <div class="slide-content">
+      <div class="slide-content" style="align-items:center;text-align:center">
         <p class="eyebrow reveal">The Problem</p>
         <h2 class="reveal" style="--d:.08s">四件事，散落在<span class="accent">四个地方</span></h2>
-        <div class="double-rule reveal" style="--d:.12s"></div>
-        <ul class="blist reveal" style="--d:.18s">
+        <div class="double-rule reveal" style="--d:.12s;margin-inline:auto"></div>
+        <ul class="blist tc reveal" style="--d:.18s">
           <li>运动记在运动 App、专注在番茄钟、想法塞进备忘录、<b>情绪没人记</b>——回看时拼不成一张图。</li>
           <li>记录要轻到「随手发一条微信」，回看要美到「愿意每天打开」。</li>
           <li>想要一处地方：既能随手记下，又能沉淀成<b>可回看的轨迹</b>，而且数据在自己手里。</li>
@@ -345,13 +396,13 @@
     </section>
 
     <!-- === SLIDE 3 — WHAT === -->
-    <section class="slide">
+    <section class="slide" id="s3">
       <div class="topline"><span class="tl-left">一句话</span><span>03 / 10</span></div>
-      <div class="slide-content">
+      <div class="slide-content" style="align-items:center;text-align:center">
         <p class="eyebrow reveal">What it is</p>
         <h2 class="reveal" style="--d:.08s">在微信里<span class="accent">记</span>，在看板里<span class="accent">回看</span></h2>
-        <div class="double-rule reveal" style="--d:.12s"></div>
-        <ul class="blist reveal" style="--d:.18s">
+        <div class="double-rule reveal" style="--d:.12s;margin-inline:auto"></div>
+        <ul class="blist tc reveal" style="--d:.18s">
           <li>微信里发一句话 → AI 自动<b>判断意图、结构化、落到本地</b>。</li>
           <li>桌面贴纸番茄钟的专注数据，<b>自动同步</b>进来。</li>
           <li>一张 Almanac 风看板：热力图、结构占比、情绪日历、想法简报。</li>
@@ -433,16 +484,24 @@
         <h2 class="reveal" style="--d:.06s">近 12 周的热力，一眼看节奏</h2>
         <div class="split reveal" style="--d:.16s">
           <div class="panel">
-            <div class="ptitle"><span>运动节奏 · 近 12 周</span><span>密 ◤</span></div>
-            <div class="heat" id="heat"></div>
+            <div class="ptitle"><span>运动节奏 · 近 12 周训练热力</span></div>
+            <div class="hm">
+              <div class="hm-week"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+              <div>
+                <div class="hm-months"><span>3月</span><span>4月</span><span>5月</span><span>6月</span></div>
+                <div class="hm-grid" id="heat"></div>
+              </div>
+            </div>
+            <div class="hm-legend"><span>稀</span><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i><span>密</span></div>
           </div>
           <div>
             <div class="mode-pills"><span class="on">运动</span><span>专注</span><span>情绪</span></div>
-            <ul class="blist">
-              <li><b>以今天为终点的滚动 12 周</b>热力图，跨月连续、不受账期影响。</li>
-              <li>运动 · 专注 · 情绪 <b>一键切换</b>同一张卡。</li>
-              <li>下方「结构卡」按月看<b>项目占比</b>，自带月份选择。</li>
-            </ul>
+            <div class="rstats">
+              <div class="rs"><div class="k">训练天数</div><div class="v">18 天</div></div>
+              <div class="rs"><div class="k">累计时长</div><div class="v">26 时 46 分</div></div>
+              <div class="rs"><div class="k">热门项目</div><div class="v">跑步 <small>累计 175 公里</small></div></div>
+            </div>
+            <p style="font-size:var(--small-size);color:var(--ink-soft);line-height:1.5;margin-top:clamp(.5rem,1.2vh,.9rem)">以今天为终点的<b style="color:var(--cinnabar-deep)">滚动 12 周</b>，跨月连续；运动 · 专注 · 情绪一键切换同一张卡。</p>
           </div>
         </div>
       </div>
@@ -452,20 +511,24 @@
     <section class="slide" id="s8">
       <div class="topline"><span class="tl-left">看板 · 想法与情绪</span><span>08 / 10</span></div>
       <div class="slide-content">
-        <p class="eyebrow reveal">Dashboard · Ideas &amp; Mood</p>
-        <h2 class="reveal" style="--d:.06s">情绪成日历，想法成剪报</h2>
+        <p class="eyebrow reveal">Dashboard · Mood &amp; Ideas</p>
+        <h2 class="reveal" style="--d:.06s">情绪成<span class="accent">月历</span>，想法成<span class="accent">剪报</span></h2>
         <div class="split reveal" style="--d:.16s">
           <div class="panel">
-            <div class="ptitle" style="color:var(--plum)"><span>情绪日历 · 本月</span></div>
-            <div class="cal" id="cal"></div>
-            <div class="mlegend" id="mlegend"></div>
+            <div class="ptitle" style="color:var(--plum)"><span>情绪节奏 · 月历</span><span>2026 年 6 月</span></div>
+            <div class="mcal-head"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+            <div class="mcal-grid" id="mcal"></div>
+            <div class="mlegend" id="mleg8" style="margin-top:clamp(.6rem,1.4vh,1rem)"></div>
           </div>
-          <div>
-            <ul class="blist">
-              <li><b>情绪日历</b>：每天一格、按心情上色，七种情绪各一枚细线图标。</li>
-              <li><b>想法简报</b>：全文搜索、分类筛选、<b>拖拽改分类</b>、双链关联。</li>
-              <li>读书笔记<b>同一本书自动合并</b>；分类可自定义、结构按性质自适应。</li>
-            </ul>
+          <div class="panel">
+            <div class="ptitle"><span>想法简报</span><span>共 3 条</span></div>
+            <div class="mini-search">⌕&nbsp; 搜索想法 / 标签 / 正文</div>
+            <div class="mini-chips"><span class="on">全部 3</span><span>产品灵感</span><span>AI碎碎念</span><span>工作</span></div>
+            <div class="mini-notes">
+              <div class="mn"><b>把情绪记录变成日历而不是列表</b><span>产品灵感</span></div>
+              <div class="mn"><b>代码廉价后更值钱的是取舍</b><span>AI碎碎念</span></div>
+              <div class="mn"><b>贴纸番茄钟的周回顾入口</b><span>工作</span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -528,15 +591,16 @@
           const r = rnd();
           const lvl = r < 0.42 ? 0 : r < 0.62 ? 1 : r < 0.8 ? 2 : r < 0.92 ? 3 : 4;
           const cell = document.createElement("i");
-          if (levels[lvl]) cell.className = levels[lvl];
+          if (i >= 12 * 7 - 2) cell.className = "bl"; // current week's future days = blank
+          else if (levels[lvl]) cell.className = levels[lvl];
           el.appendChild(cell);
         }
       })();
 
-      (function buildMood() {
-        const cal = document.getElementById("cal");
-        const legend = document.getElementById("mlegend");
-        if (!cal) return;
+      (function buildMoodCalendar() {
+        const grid = document.getElementById("mcal");
+        const legend = document.getElementById("mleg8");
+        if (!grid) return;
         const EM = [
           { k: "开心", c: "#c0902f", svg: '<line x1="3.5" y1="17.5" x2="20.5" y2="17.5"/><path d="M8 17.5a4 4 0 0 1 8 0"/><line x1="12" y1="5.5" x2="12" y2="8"/><line x1="6" y1="8.6" x2="7.7" y2="10.3"/><line x1="18" y1="8.6" x2="16.3" y2="10.3"/>' },
           { k: "平静", c: "#3f6f63", svg: '<path d="M12 21v-8.5"/><path d="M12 13c0-3 2.3-5 5.4-5 0 3-2.3 5-5.4 5z"/><path d="M12 15c0-2.4-2-4-4.6-4 0 2.4 2 4 4.6 4z"/>' },
@@ -545,16 +609,24 @@
           { k: "恐惧", c: "#5b3a40", svg: '<path d="M16 13.2A6 6 0 1 1 9.4 5.4 4.7 4.7 0 0 0 16 13.2z"/>' },
           { k: "很难描述", c: "#8a7f69", svg: '<line x1="4.5" y1="9" x2="16" y2="9"/><line x1="8" y1="12.5" x2="19.5" y2="12.5"/><line x1="5.5" y1="16" x2="15" y2="16"/>' },
         ];
+        const COLOR = {}; EM.forEach((e) => (COLOR[e.k] = e.c));
         const ICON = (e, size) => `<span class="mi" style="color:${e.c};width:${size};height:${size}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${e.svg}</svg></span>`;
-        // a month-ish grid (5 weeks), some days tinted by emotion
-        let seed = 19;
-        const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
-        for (let i = 0; i < 35; i++) {
-          const cell = document.createElement("i");
-          const r = rnd();
-          if (i < 30 && r > 0.45) cell.style.background = EM[Math.floor(rnd() * EM.length)].c;
-          cal.appendChild(cell);
-        }
+
+        // June 2026, week starts 日(Sun): one leading prev-month day (31), 1..30, trailing 1..4 -> 35 cells
+        const rec = { 1: "难过", 3: "平静", 4: "开心", 7: "开心", 8: "焦虑", 9: "平静", 10: "平静", 12: "很难描述", 16: "开心", 19: "难过", 22: "平静" };
+        const today = 10;
+        const cells = [{ n: 31, muted: true }];
+        for (let d = 1; d <= 30; d++) cells.push({ n: d });
+        for (let d = 1; d <= 4; d++) cells.push({ n: d, muted: true });
+        grid.innerHTML = cells
+          .map((c) => {
+            let cls = "d", st = "";
+            if (c.muted) cls += " muted";
+            else if (rec[c.n]) { cls += " rec"; st = "background:" + COLOR[rec[c.n]]; }
+            if (c.n === today && !c.muted) cls += " today";
+            return `<div class="${cls}" style="${st}">${c.n}</div>`;
+          })
+          .join("");
         legend.innerHTML = EM.map((e) => `<span>${ICON(e, "15px")}${e.k}</span>`).join("");
       })();
 
