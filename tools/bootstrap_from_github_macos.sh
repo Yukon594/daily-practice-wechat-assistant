@@ -21,9 +21,8 @@ if ! command -v unzip >/dev/null 2>&1; then
 fi
 
 echo "这个脚本会先从 GitHub 下载项目，再继续安装。"
-read -r -p "安装到哪里？直接回车使用默认目录 [${DEFAULT_TARGET_DIR}]: " target_dir
-target_dir="${target_dir:-$DEFAULT_TARGET_DIR}"
-target_dir="${target_dir/#\~/$HOME}"
+target_dir="${DEFAULT_TARGET_DIR/#\~/$HOME}"
+echo "安装目录固定为：$target_dir"
 
 if [[ "$target_dir" == *:* ]]; then
   cat <<EOF
@@ -36,19 +35,16 @@ $target_dir
 /Users/yourname/Desktop/my-folder
 
 不要使用 Finder 风格的冒号路径。
-最简单的做法是重新运行脚本，然后直接回车使用默认目录。
+最简单的做法是重新运行脚本，并使用默认目录。
 EOF
   exit 1
 fi
 
 if [[ -e "$target_dir" ]]; then
   echo "目标目录已经存在：$target_dir"
-  read -r -p "是否覆盖这个目录里的内容？[y/N] " overwrite
-  if [[ ! "$overwrite" =~ ^[Yy]$ ]]; then
-    echo "已取消安装。"
-    exit 1
-  fi
-  rm -rf "$target_dir"
+  echo "为避免误删已有内容，脚本先停止。"
+  echo "如果你确认要重新安装，请先手动删除这个目录，再重新运行安装命令。"
+  exit 1
 fi
 
 tmpdir="$(mktemp -d)"

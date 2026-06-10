@@ -282,24 +282,19 @@ curl -fsSL https://raw.githubusercontent.com/Yukon594/daily-practice-wechat-assi
 它会自动帮你：
 
 - 从 GitHub 下载这个项目
-- 选择安装目录
+- 安装到固定目录 `$HOME/daily-practice-wechat-assistant`
 - 创建 `.venv`
 - 安装依赖
 - 生成 `config.json`
 - 让你直接输入 LLM API key
 - 安装完成后可直接进入命令行模式
 
-注意：
-
-- 当脚本问“安装到哪里”时，最稳的做法是直接回车用默认目录
-- 不要输入带英文冒号 `:` 的 Finder 风格路径
-
 ### 已经下载仓库后的本地安装
 
 如果你已经手动下载好了仓库，再执行这条：
 
 ```bash
-bash tools/install_macos.sh
+bash "$HOME/daily-practice-wechat-assistant/tools/install_macos.sh"
 ```
 
 这个本地安装脚本会自动帮你：
@@ -309,6 +304,8 @@ bash tools/install_macos.sh
 - 生成 `config.json`
 - 让你直接输入 LLM API key
 - 安装完成后可直接进入命令行模式
+
+如果你是手动下载到别的目录，也可以把上面这条里的路径改成你自己的目录。
 
 ### 手动安装
 
@@ -386,7 +383,7 @@ source .venv/bin/activate
 ### 先用命令行跑通
 
 ```bash
-python3 cli.py
+bash "$HOME/daily-practice-wechat-assistant/tools/run_cli_macos.sh"
 ```
 
 你可以试这些：
@@ -407,12 +404,8 @@ python3 cli.py --once "我想给番茄钟加个周回顾入口"
 ### 启动本地网页看板
 
 ```bash
-python3 dashboard/app.py
+bash "$HOME/daily-practice-wechat-assistant/tools/run_dashboard_macos.sh"
 ```
-
-然后打开：
-
-- [http://127.0.0.1:9900](http://127.0.0.1:9900)
 
 ### 想先看效果？用演示数据
 
@@ -462,6 +455,17 @@ export PATH="$HOME/.openclaw/bin:$PATH"
 openclaw onboard --install-daemon
 ```
 
+如果你想直接打开 OpenClaw 面板，最稳的方式是运行：
+
+```bash
+bash "$HOME/daily-practice-wechat-assistant/tools/open_openclaw_dashboard_macos.sh"
+```
+
+这个脚本会自动尝试：
+
+- `openclaw dashboard`
+- 如果 `openclaw` 不在 PATH，就改用 `~/.openclaw/bin/openclaw`
+
 安装微信插件：
 
 ```bash
@@ -496,8 +500,8 @@ python3 skills/wechat-assistant/handle.py --text "记下来" --session-id wechat
 4. 直接运行：
 
 ```bash
-python3 cli.py
-python3 dashboard/app.py
+bash "$HOME/daily-practice-wechat-assistant/tools/run_cli_macos.sh"
+bash "$HOME/daily-practice-wechat-assistant/tools/run_dashboard_macos.sh"
 ```
 
 如果专注数据没有自动出现，再回头补 `pomodoro_settings_path`。

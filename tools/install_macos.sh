@@ -15,7 +15,7 @@ $ROOT_DIR
 请把项目放到一个不带 `:` 的目录里，例如：
 $HOME/daily-practice-wechat-assistant
 
-如果你是用一键安装命令装的新电脑版本，重新运行后在“安装到哪里”那里直接回车即可。
+如果你是用一键安装命令装的新电脑版本，重新运行安装脚本即可。
 EOF
   exit 1
 fi
@@ -40,7 +40,7 @@ if ! command -v python3 >/dev/null 2>&1; then
 1. 打开 https://www.python.org/downloads/macos/
 2. 下载并安装最新版 Python 3
 3. 安装完成后重新打开终端
-4. 再执行：bash tools/install_macos.sh
+4. 再执行：bash "$HOME/daily-practice-wechat-assistant/tools/install_macos.sh"
 EOF
   exit 1
 fi
@@ -166,11 +166,10 @@ echo
 echo "接下来你可以这样使用："
 echo
 echo "1. 命令行聊天："
-echo "   source .venv/bin/activate && python3 cli.py"
+echo "   bash \"$ROOT_DIR/tools/run_cli_macos.sh\""
 echo
 echo "2. 打开本地看板："
-echo "   source .venv/bin/activate && python3 dashboard/app.py"
-echo "   然后访问 http://127.0.0.1:9900"
+echo "   bash \"$ROOT_DIR/tools/run_dashboard_macos.sh\""
 echo
 read -r -p "现在就启动命令行模式吗？[Y/n] " start_cli_now
 start_cli_now="${start_cli_now:-Y}"
