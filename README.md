@@ -12,13 +12,29 @@
 
 ## 超短安装
 
-如果你是第一次装，先什么都别想，直接按这个来：
+如果你是新电脑、还没下载这个项目，直接复制这一条：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Yukon594/daily-practice-wechat-assistant/main/tools/bootstrap_from_github_macos.sh | bash
+```
+
+它会自动帮你：
+
+- 从 GitHub 下载这个项目
+- 选择安装目录
+- 创建 `.venv`
+- 安装依赖
+- 生成 `config.json`
+- 让你直接输入 LLM API key
+- 安装完成后可直接进入命令行模式
+
+如果你已经手动下载好了仓库，再执行这条：
 
 ```bash
 bash tools/install_macos.sh
 ```
 
-这个脚本会自动帮你：
+这个本地安装脚本会自动帮你：
 
 - 创建 `.venv`
 - 安装依赖
@@ -75,7 +91,13 @@ pip install -r requirements.txt
 - `requests`
 - `flask`
 
-如果你已经下载了仓库，最适合小白的命令就是：
+如果你是新电脑、还没下载仓库，最适合小白的命令就是：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Yukon594/daily-practice-wechat-assistant/main/tools/bootstrap_from_github_macos.sh | bash
+```
+
+如果你已经下载了仓库，再执行：
 
 ```bash
 bash tools/install_macos.sh
