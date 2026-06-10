@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>日课 · The Daily Almanac</title>
+    <meta name="description" content="日课 —— 一个接入微信的本地 AI 助手 + 老历书风看板，记录运动 · 专注 · 想法 · 情绪。" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,400..500&family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ===========================================
+         THEME — 日课 / Almanac letterpress
+         Change these to restyle the whole deck.
+         =========================================== */
+      :root {
+        --paper: #f1e7d3;
+        --paper-2: #ece0c6;
+        --card: #f7f0e1;
+        --ink: #221c14;
+        --ink-soft: #5f5645;
+        --ink-faint: #8a7f69;
+        --rule: rgba(34, 28, 20, 0.16);
+        --rule-soft: rgba(34, 28, 20, 0.08);
+        --cinnabar: #c0432a;
+        --cinnabar-deep: #9a3220;
+        --celadon: #3f6f63;
+        --ochre: #c0902f;
+        --plum: #7a4b52;
+        --slate: #4a5b6b;
+        --display: "Fraunces", "Noto Serif SC", Georgia, serif;
+        --body: "Noto Serif SC", "Fraunces", Georgia, serif;
+        --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+        /* responsive type (clamped) */
+        --title-size: clamp(1.5rem, 5vw, 4rem);
+        --h2-size: clamp(1.35rem, 3.4vw, 2.6rem);
+        --body-size: clamp(0.8rem, 1.45vw, 1.12rem);
+        --small-size: clamp(0.66rem, 1vw, 0.84rem);
+        --slide-padding: clamp(1.4rem, 4.5vw, 4.5rem);
+        --content-gap: clamp(0.6rem, 2vh, 1.6rem);
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      /* ===========================================
+         VIEWPORT FITTING: MANDATORY BASE STYLES
+         =========================================== */
+      html, body { height: 100%; overflow-x: hidden; }
+      html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+
+      .slide {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+        scroll-snap-align: start;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+      .slide-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        max-height: 100%;
+        overflow: hidden;
+        padding: var(--slide-padding);
+      }
+      .card, .container, .content-box { max-width: min(92vw, 1080px); max-height: min(82vh, 720px); }
+      img, .image-container { max-width: 100%; max-height: min(50vh, 400px); object-fit: contain; }
+
+      @media (max-height: 700px) {
+        :root {
+          --slide-padding: clamp(0.9rem, 3vw, 2.4rem);
+          --content-gap: clamp(0.4rem, 1.4vh, 1rem);
+          --title-size: clamp(1.3rem, 4.5vw, 2.6rem);
+          --h2-size: clamp(1.1rem, 3vw, 1.9rem);
+        }
+      }
+      @media (max-height: 600px) {
+        :root {
+          --slide-padding: clamp(0.6rem, 2.5vw, 1.6rem);
+          --title-size: clamp(1.1rem, 4vw, 2rem);
+          --body-size: clamp(0.72rem, 1.2vw, 0.95rem);
+        }
+        .nav-dots, .keyboard-hint, .decorative { display: none; }
+      }
+      @media (max-width: 600px) {
+        :root { --title-size: clamp(1.3rem, 8vw, 2.6rem); }
+        .grid2 { grid-template-columns: 1fr !important; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+        html { scroll-behavior: auto; }
+      }
+
+      /* ===========================================
+         ATMOSPHERE — paper, grain, accents
+         =========================================== */
+      body {
+        color: var(--ink);
+        font-family: var(--body);
+        background-color: var(--paper);
+        background-image:
+          radial-gradient(circle at 12% 8%, rgba(192, 67, 42, 0.06), transparent 34%),
+          radial-gradient(circle at 88% 92%, rgba(63, 111, 99, 0.07), transparent 32%),
+          linear-gradient(168deg, #f3ead7 0%, #e9dcc1 60%, #efe6d2 100%);
+        -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.5;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+        mix-blend-mode: multiply;
+      }
+      .slide-content { position: relative; z-index: 1; }
+
+      /* ===========================================
+         SHARED EDITORIAL ELEMENTS
+         =========================================== */
+      .topline {
+        position: absolute;
+        top: clamp(0.9rem, 2.6vh, 2rem);
+        left: var(--slide-padding);
+        right: var(--slide-padding);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: var(--display);
+        font-size: var(--small-size);
+        letter-spacing: 0.26em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        z-index: 2;
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: clamp(0.5rem, 1.2vh, 0.9rem);
+      }
+      .topline .tl-left { color: var(--cinnabar-deep); }
+      .eyebrow {
+        font-family: var(--display);
+        font-size: var(--small-size);
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--cinnabar-deep);
+        margin-bottom: clamp(0.5rem, 1.4vh, 1rem);
+      }
+      h2 {
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: var(--h2-size);
+        line-height: 1.08;
+        letter-spacing: 0.01em;
+        margin-bottom: clamp(0.6rem, 1.8vh, 1.4rem);
+      }
+      h2 .accent { color: var(--cinnabar); }
+      .dek { font-size: var(--body-size); line-height: 1.7; color: var(--ink-soft); max-width: 60ch; }
+      .double-rule { border-top: 3px double var(--ink); width: clamp(48px, 8vw, 96px); margin: clamp(0.6rem,1.6vh,1.2rem) 0; }
+
+      /* seal stamp */
+      .seal {
+        font-family: var(--body);
+        font-weight: 500;
+        color: #f4ead4;
+        background: var(--cinnabar);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.18em;
+        transform: rotate(-3deg);
+        box-shadow: 0 8px 18px -10px rgba(154, 50, 32, 0.85);
+      }
+
+      /* bullets */
+      .blist { list-style: none; display: flex; flex-direction: column; gap: clamp(0.5rem, 1.6vh, 1.1rem); max-width: 64ch; }
+      .blist li { position: relative; padding-left: 1.5em; font-size: var(--body-size); line-height: 1.55; color: var(--ink); }
+      .blist li::before { content: "❧"; position: absolute; left: 0; color: var(--ochre); }
+      .blist li b { color: var(--cinnabar-deep); font-weight: 600; }
+
+      /* ===========================================
+         REVEAL ANIMATION (staggered on slide enter)
+         =========================================== */
+      .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); transition-delay: var(--d, 0s); }
+      .slide.visible .reveal { opacity: 1; transform: none; }
+
+      /* ===========================================
+         COVER (slide 1)
+         =========================================== */
+      .cover .slide-content { align-items: center; text-align: center; }
+      .cover-mark { display: inline-flex; align-items: flex-start; gap: 0.08em; }
+      .wordmark { font-family: var(--display); font-weight: 600; font-size: clamp(3rem, 12vw, 8.5rem); line-height: 0.86; letter-spacing: 0.05em; }
+      .cover .seal { font-size: clamp(0.7rem, 2.4vw, 1.7rem); padding: 0.34em 0.42em 0.38em; margin-top: 0.55em; }
+      .cover-flank { display: flex; align-items: center; gap: clamp(14px, 3vw, 38px); margin-bottom: clamp(0.4rem, 1.4vh, 1rem); }
+      .cover-flank .rule { height: 0; width: clamp(40px, 14vw, 200px); border-top: 1px solid var(--ink); border-bottom: 3px solid var(--ink); padding-bottom: 4px; opacity: 0.82; }
+      .cover .dek { font-family: var(--display); font-style: italic; font-size: clamp(0.95rem, 2.1vw, 1.45rem); color: var(--ink-soft); margin-top: clamp(0.8rem, 2.2vh, 1.6rem); max-width: 36ch; }
+      .cover .sub { margin-top: clamp(0.5rem, 1.4vh, 1rem); font-size: var(--small-size); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); }
+      .scroll-hint { position: absolute; bottom: clamp(1rem, 3vh, 2rem); left: 50%; transform: translateX(-50%); font-family: var(--display); font-size: var(--small-size); letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); animation: bob 2.4s var(--ease) infinite; }
+      @keyframes bob { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 6px); } }
+
+      /* ===========================================
+         FEATURE GRID (slide 5)
+         =========================================== */
+      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(0.6rem, 1.8vw, 1.4rem); width: 100%; max-width: 1000px; }
+      .fcard {
+        background: var(--card);
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        padding: clamp(0.9rem, 2vw, 1.6rem);
+        box-shadow: 0 18px 44px -34px rgba(60, 42, 24, 0.5);
+        display: flex; gap: clamp(0.7rem, 1.4vw, 1.1rem); align-items: flex-start;
+      }
+      .ficon { flex: none; width: clamp(30px, 4vw, 44px); height: clamp(30px, 4vw, 44px); }
+      .ficon svg { width: 100%; height: 100%; }
+      .fcard h3 { font-family: var(--display); font-weight: 600; font-size: clamp(1rem, 2vw, 1.4rem); margin-bottom: 0.25em; }
+      .fcard p { font-size: var(--small-size); line-height: 1.5; color: var(--ink-soft); }
+      .fcard .tag { font-family: var(--display); font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--cinnabar-deep); }
+
+      /* ===========================================
+         CHAT MOCKUP (slide 6)
+         =========================================== */
+      .chat { display: flex; flex-direction: column; gap: clamp(0.5rem, 1.3vh, 0.9rem); width: 100%; max-width: 640px; }
+      .bubble { max-width: 80%; padding: clamp(0.55rem, 1.3vw, 0.9rem) clamp(0.8rem, 1.6vw, 1.15rem); font-size: var(--body-size); line-height: 1.5; border-radius: 14px; white-space: pre-line; }
+      .bubble.user { align-self: flex-end; background: var(--cinnabar); color: #f7eede; border-bottom-right-radius: 4px; }
+      .bubble.bot { align-self: flex-start; background: var(--card); border: 1px solid var(--rule); color: var(--ink); border-bottom-left-radius: 4px; box-shadow: 0 10px 30px -26px rgba(60,42,24,.6); }
+      .bubble .muted { color: var(--ink-faint); }
+
+      /* ===========================================
+         TWO-COLUMN VISUAL (slides 7, 8)
+         =========================================== */
+      .split { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(1rem, 3vw, 2.6rem); align-items: center; width: 100%; max-width: 1040px; }
+      @media (max-width: 760px) { .split { grid-template-columns: 1fr; gap: 1rem; } }
+
+      .panel { background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: clamp(0.9rem, 2vw, 1.5rem); box-shadow: 0 18px 44px -34px rgba(60,42,24,.5); }
+      .panel .ptitle { font-family: var(--display); font-size: var(--small-size); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 0.7rem; display: flex; justify-content: space-between; }
+
+      /* mini heatmap */
+      .heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: clamp(2px, 0.4vw, 4px); }
+      .heat i { width: clamp(8px, 1.5vw, 15px); height: clamp(8px, 1.5vw, 15px); border-radius: 2px; background: rgba(138,127,105,0.14); display: block; }
+      .heat i.l1 { background: rgba(192,144,47,0.34); }
+      .heat i.l2 { background: rgba(192,144,47,0.6); }
+      .heat i.l3 { background: rgba(192,67,42,0.7); }
+      .heat i.l4 { background: rgba(63,111,99,0.85); }
+
+      .mode-pills { display: inline-flex; gap: 5px; padding: 4px; border: 1px solid var(--rule); border-radius: 999px; background: rgba(255,255,255,0.4); margin-bottom: 0.9rem; }
+      .mode-pills span { font-family: var(--display); font-size: 0.7rem; letter-spacing: 0.05em; padding: 5px 11px; border-radius: 999px; color: var(--ink-soft); }
+      .mode-pills span.on { background: var(--ink); color: var(--paper); }
+      .mode-pills span.on.focus { background: var(--celadon); }
+      .mode-pills span.on.mood { background: var(--plum); }
+
+      /* mini mood calendar + legend */
+      .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: clamp(3px, 0.6vw, 6px); }
+      .cal i { aspect-ratio: 1; border-radius: 3px; background: rgba(138,127,105,0.12); }
+      .mlegend { display: flex; flex-wrap: wrap; gap: 6px 13px; margin-top: 0.9rem; }
+      .mlegend span { display: inline-flex; align-items: center; gap: 5px; font-family: var(--display); font-size: 0.72rem; color: var(--ink-soft); }
+      .mlegend span .mi { width: 15px; height: 15px; display: inline-flex; }
+      .mlegend span .mi svg { width: 100%; height: 100%; }
+
+      /* ===========================================
+         ARCHITECTURE FLOW (slide 4)
+         =========================================== */
+      .flow { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: center; gap: clamp(0.5rem, 1.4vw, 1rem); width: 100%; max-width: 1040px; }
+      .fbox { background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: clamp(0.7rem, 1.6vw, 1.2rem) clamp(0.8rem, 1.8vw, 1.4rem); text-align: center; display: flex; flex-direction: column; gap: 0.2rem; justify-content: center; min-width: clamp(120px, 16vw, 175px); box-shadow: 0 16px 40px -34px rgba(60,42,24,.5); }
+      .fbox .k { font-family: var(--display); font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); }
+      .fbox .v { font-family: var(--display); font-weight: 600; font-size: clamp(0.95rem, 1.8vw, 1.3rem); }
+      .fbox .s { font-size: 0.72rem; color: var(--ink-soft); }
+      .fbox.accent { border-color: rgba(192,67,42,0.4); }
+      .arrow { display: flex; align-items: center; color: var(--cinnabar); font-size: clamp(1rem, 2vw, 1.6rem); font-family: var(--display); }
+      .flow-stack { display: flex; flex-direction: column; gap: clamp(0.4rem, 1vw, 0.7rem); }
+
+      /* ===========================================
+         DESIGN × TECH columns (slide 9)
+         =========================================== */
+      .cols { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1rem, 4vw, 3rem); width: 100%; max-width: 980px; }
+      @media (max-width: 700px) { .cols { grid-template-columns: 1fr; gap: 1.1rem; } }
+      .cols h4 { font-family: var(--display); font-weight: 600; font-size: clamp(1rem, 2vw, 1.4rem); margin-bottom: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--rule); }
+      .cols .col-a h4 { color: var(--cinnabar-deep); }
+      .cols .col-b h4 { color: var(--celadon); }
+      .cols ul { list-style: none; display: flex; flex-direction: column; gap: clamp(0.35rem, 1vh, 0.7rem); }
+      .cols li { font-size: var(--small-size); line-height: 1.45; color: var(--ink); padding-left: 1.1em; position: relative; }
+      .cols li::before { content: "·"; position: absolute; left: 0; color: var(--ochre); font-weight: 700; }
+
+      /* ===========================================
+         CLOSING (slide 10)
+         =========================================== */
+      .closing .slide-content { align-items: center; text-align: center; }
+      .closing .seal { font-size: clamp(0.9rem, 3vw, 2rem); padding: 0.32em 0.42em 0.36em; }
+      .repo { font-family: var(--display); font-size: clamp(0.95rem, 2.2vw, 1.5rem); color: var(--cinnabar-deep); margin-top: clamp(0.8rem, 2.2vh, 1.6rem); letter-spacing: 0.01em; }
+      .repo a { color: inherit; text-decoration: none; border-bottom: 1.5px solid rgba(192,67,42,0.35); }
+
+      /* ===========================================
+         CHROME — progress bar, nav dots
+         =========================================== */
+      .progress-bar { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--cinnabar); z-index: 50; transition: width 0.15s linear; }
+      .nav-dots { position: fixed; right: clamp(0.7rem, 1.6vw, 1.4rem); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 11px; z-index: 50; }
+      .nav-dots button { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--ink-faint); background: transparent; cursor: pointer; padding: 0; transition: all 0.2s var(--ease); }
+      .nav-dots button.active { background: var(--cinnabar); border-color: var(--cinnabar); transform: scale(1.25); }
+    </style>
+  </head>
+  <body>
+    <div class="progress-bar"></div>
+    <nav class="nav-dots" aria-label="幻灯片导航"></nav>
+
+    <!-- === SLIDE 1 — COVER === -->
+    <section class="slide cover">
+      <div class="topline">
+        <span class="tl-left">私人日课 · The Daily Almanac</span>
+        <span>GitHub · Yukon594</span>
+      </div>
+      <div class="slide-content">
+        <div class="cover-flank reveal" style="--d:.05s">
+          <span class="rule"></span>
+          <span style="font-family:var(--display);font-size:var(--small-size);letter-spacing:.28em;text-transform:uppercase;color:var(--ink-faint)">运动 · 专注 · 想法 · 情绪</span>
+          <span class="rule"></span>
+        </div>
+        <h1 class="cover-mark reveal" style="--d:.12s">
+          <span class="wordmark">日课</span><span class="seal">課</span>
+        </h1>
+        <p class="dek reveal" style="--d:.24s">把每天的身心轨迹，收进同一张桌面。</p>
+        <p class="sub reveal" style="--d:.34s">一个接进微信的本地 AI 助手 ＋ 老历书风看板</p>
+      </div>
+      <div class="scroll-hint decorative">向下滚动 ↓</div>
+    </section>
+
+    <!-- === SLIDE 2 — WHY === -->
+    <section class="slide">
+      <div class="topline"><span class="tl-left">为什么</span><span>02 / 10</span></div>
+      <div class="slide-content">
+        <p class="eyebrow reveal">The Problem</p>
+        <h2 class="reveal" style="--d:.08s">四件事，散落在<span class="accent">四个地方</span></h2>
+        <div class="double-rule reveal" style="--d:.12s"></div>
+        <ul class="blist reveal" style="--d:.18s">
+          <li>运动记在运动 App、专注在番茄钟、想法塞进备忘录、<b>情绪没人记</b>——回看时拼不成一张图。</li>
+          <li>记录要轻到「随手发一条微信」，回看要美到「愿意每天打开」。</li>
+          <li>想要一处地方：既能随手记下，又能沉淀成<b>可回看的轨迹</b>，而且数据在自己手里。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- === SLIDE 3 — WHAT === -->
+    <section class="slide">
+      <div class="topline"><span class="tl-left">一句话</span><span>03 / 10</span></div>
+      <div class="slide-content">
+        <p class="eyebrow reveal">What it is</p>
+        <h2 class="reveal" style="--d:.08s">在微信里<span class="accent">记</span>，在看板里<span class="accent">回看</span></h2>
+        <div class="double-rule reveal" style="--d:.12s"></div>
+        <ul class="blist reveal" style="--d:.18s">
+          <li>微信里发一句话 → AI 自动<b>判断意图、结构化、落到本地</b>。</li>
+          <li>桌面贴纸番茄钟的专注数据，<b>自动同步</b>进来。</li>
+          <li>一张 Almanac 风看板：热力图、结构占比、情绪日历、想法简报。</li>
+          <li><b>全本地存储</b>（SQLite + Markdown），数据始终在你这台机器上。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- === SLIDE 4 — ARCHITECTURE === -->
+    <section class="slide">
+      <div class="topline"><span class="tl-left">架构</span><span>04 / 10</span></div>
+      <div class="slide-content" style="align-items:center;text-align:center">
+        <p class="eyebrow reveal">Architecture</p>
+        <h2 class="reveal" style="--d:.08s">一条消息，从微信到账簿</h2>
+        <div class="flow reveal" style="--d:.16s;margin-top:clamp(.6rem,2vh,1.4rem)">
+          <div class="fbox"><span class="k">入口</span><span class="v">微信</span><span class="s">ClawBot 插件 · 1对1</span></div>
+          <span class="arrow">→</span>
+          <div class="fbox accent"><span class="k">大脑</span><span class="v">助手引擎</span><span class="s">意图路由 · 会话状态</span></div>
+          <span class="arrow">→</span>
+          <div class="flow-stack">
+            <div class="fbox"><span class="k">解析</span><span class="v">DeepSeek</span><span class="s">结构化 · 自适应</span></div>
+            <div class="fbox"><span class="k">存储</span><span class="v">本地 SQLite</span><span class="s">运动·专注·情绪·想法</span></div>
+          </div>
+          <span class="arrow">→</span>
+          <div class="fbox accent"><span class="k">回看</span><span class="v">Almanac 看板</span><span class="s">Flask · 本地网页</span></div>
+        </div>
+        <p class="dek reveal" style="--d:.3s;margin-top:clamp(.8rem,2.4vh,1.6rem);text-align:center">微信负责「收发」，引擎负责「判断与整理」，看板负责「回看」——三层解耦，互不绑死。</p>
+      </div>
+    </section>
+
+    <!-- === SLIDE 5 — FOUR PILLARS === -->
+    <section class="slide">
+      <div class="topline"><span class="tl-left">四条主线</span><span>05 / 10</span></div>
+      <div class="slide-content" style="align-items:center">
+        <h2 class="reveal" style="text-align:center">记什么：<span class="accent">身</span>与<span class="accent">心</span>各两条</h2>
+        <div class="grid2 reveal" style="--d:.14s">
+          <div class="fcard">
+            <span class="ficon" style="color:var(--cinnabar)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="5" r="1.6"/><path d="M5 21l3-5 3 1 1-4 3 3 3 0"/><path d="M8 16l2-4 2 1"/></svg></span>
+            <div><span class="tag">运动</span><h3>一句话记训练</h3><p>「跑步5公里30分钟」自动拆出项目 / 时长 / 距离，按项目统计。</p></div>
+          </div>
+          <div class="fcard">
+            <span class="ficon" style="color:var(--celadon)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11"/><path d="M12 13c0-3 2.3-5 5.4-5 0 3-2.3 5-5.4 5z"/><path d="M12 15c0-2.4-2-4-4.6-4 0 2.4 2 4 4.6 4z"/></svg></span>
+            <div><span class="tag" style="color:var(--celadon)">专注</span><h3>番茄钟自动同步</h3><p>读取桌面贴纸番茄钟数据，按项目拆分专注时长与「番茄」。</p></div>
+          </div>
+          <div class="fcard">
+            <span class="ficon" style="color:var(--ochre)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5C13 5 8.6 8.6 6.6 14L5 19"/><path d="M19 5c.6 5.6-2.6 10.2-8.2 11.7"/><path d="M9 13.5h5"/></svg></span>
+            <div><span class="tag" style="color:var(--ochre)">想法</span><h3>对话式整理成笔记</h3><p>自适应结构、双链关联、同一本书自动并入一条读书笔记。</p></div>
+          </div>
+          <div class="fcard">
+            <span class="ficon" style="color:var(--plum)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13.2A6 6 0 1 1 9.4 5.4 4.7 4.7 0 0 0 16 13.2z"/></svg></span>
+            <div><span class="tag" style="color:var(--plum)">情绪</span><h3>每天问一句心情</h3><p>成功记一条后顺手一问，七种心情各配一枚细线图标与颜色。</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- === SLIDE 6 — WECHAT CHAT === -->
+    <section class="slide" id="s6">
+      <div class="topline"><span class="tl-left">微信交互</span><span>06 / 10</span></div>
+      <div class="slide-content" style="align-items:center">
+        <p class="eyebrow reveal" style="text-align:center">In WeChat</p>
+        <h2 class="reveal" style="--d:.06s;text-align:center">随手一句，剩下的交给它</h2>
+        <div class="chat reveal" style="--d:.16s;margin-top:clamp(.5rem,1.6vh,1rem)">
+          <div class="bubble user">跑步 5公里 30分钟</div>
+          <div class="bubble bot">已记录运动：跑步，30分钟，5公里
+<span class="muted">顺手记下今天的心情吧——开心 / 平静 / 焦虑 / 难过 / 恐惧 / 很难描述，或自己说一句。</span></div>
+          <div class="bubble user">平静</div>
+          <div class="bubble bot">记下了今天的心情：平静 🌿</div>
+        </div>
+        <p class="dek reveal" style="--d:.32s;text-align:center;margin-top:clamp(.7rem,2vh,1.3rem)">想法则会被多问两句、再整理成结构化笔记——每件事都只是「发条消息」的成本。</p>
+      </div>
+    </section>
+
+    <!-- === SLIDE 7 — DASHBOARD: RHYTHM === -->
+    <section class="slide" id="s7">
+      <div class="topline"><span class="tl-left">看板 · 节奏</span><span>07 / 10</span></div>
+      <div class="slide-content">
+        <p class="eyebrow reveal">Dashboard · Rhythm</p>
+        <h2 class="reveal" style="--d:.06s">近 12 周的热力，一眼看节奏</h2>
+        <div class="split reveal" style="--d:.16s">
+          <div class="panel">
+            <div class="ptitle"><span>运动节奏 · 近 12 周</span><span>密 ◤</span></div>
+            <div class="heat" id="heat"></div>
+          </div>
+          <div>
+            <div class="mode-pills"><span class="on">运动</span><span>专注</span><span>情绪</span></div>
+            <ul class="blist">
+              <li><b>以今天为终点的滚动 12 周</b>热力图，跨月连续、不受账期影响。</li>
+              <li>运动 · 专注 · 情绪 <b>一键切换</b>同一张卡。</li>
+              <li>下方「结构卡」按月看<b>项目占比</b>，自带月份选择。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- === SLIDE 8 — DASHBOARD: IDEAS & MOOD === -->
+    <section class="slide" id="s8">
+      <div class="topline"><span class="tl-left">看板 · 想法与情绪</span><span>08 / 10</span></div>
+      <div class="slide-content">
+        <p class="eyebrow reveal">Dashboard · Ideas &amp; Mood</p>
+        <h2 class="reveal" style="--d:.06s">情绪成日历，想法成剪报</h2>
+        <div class="split reveal" style="--d:.16s">
+          <div class="panel">
+            <div class="ptitle" style="color:var(--plum)"><span>情绪日历 · 本月</span></div>
+            <div class="cal" id="cal"></div>
+            <div class="mlegend" id="mlegend"></div>
+          </div>
+          <div>
+            <ul class="blist">
+              <li><b>情绪日历</b>：每天一格、按心情上色，七种情绪各一枚细线图标。</li>
+              <li><b>想法简报</b>：全文搜索、分类筛选、<b>拖拽改分类</b>、双链关联。</li>
+              <li>读书笔记<b>同一本书自动合并</b>；分类可自定义、结构按性质自适应。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- === SLIDE 9 — DESIGN × TECH === -->
+    <section class="slide">
+      <div class="topline"><span class="tl-left">设计 × 技术</span><span>09 / 10</span></div>
+      <div class="slide-content" style="align-items:center">
+        <h2 class="reveal" style="text-align:center">克制的美学，<span class="accent">本地优先</span>的工程</h2>
+        <div class="cols reveal" style="--d:.14s">
+          <div class="col-a">
+            <h4>设计语言</h4>
+            <ul>
+              <li>Fraunces + 思源宋体，衬线印刷感</li>
+              <li>朱砂 · 青 · 赭 三色 + 纸纹 · 双线 · 印章</li>
+              <li>全套手绘细线 SVG 图标（情绪 / 功能）</li>
+              <li>老历书 / letterpress，每屏一帧、留白讲究</li>
+            </ul>
+          </div>
+          <div class="col-b">
+            <h4>技术实现</h4>
+            <ul>
+              <li>Python · Flask · SQLite，零云依赖</li>
+              <li>DeepSeek（OpenAI 兼容）做解析与对话</li>
+              <li>意图路由 + 自适应想法整理 prompt</li>
+              <li>滚动窗口聚合 · 番茄钟同步 · 单元测试覆盖</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- === SLIDE 10 — CLOSING === -->
+    <section class="slide closing">
+      <div class="topline"><span class="tl-left">日课 · The Daily Almanac</span><span>10 / 10</span></div>
+      <div class="slide-content">
+        <div class="cover-mark reveal" style="--d:.05s">
+          <span class="wordmark" style="font-size:clamp(2.4rem,9vw,6rem)">日课</span><span class="seal" style="font-size:clamp(.6rem,2vw,1.4rem);padding:.34em .42em .38em;margin-top:.55em">課</span>
+        </div>
+        <p class="dek reveal" style="--d:.18s;font-family:var(--display);font-style:italic;font-size:clamp(1rem,2.4vw,1.6rem);max-width:30ch;margin-inline:auto">每天一点，收进账簿。</p>
+        <p class="repo reveal" style="--d:.28s"><a href="https://github.com/Yukon594/daily-practice-wechat-assistant" target="_blank" rel="noopener">github.com/Yukon594/daily-practice-wechat-assistant</a></p>
+        <p class="sub reveal" style="--d:.36s;font-size:var(--small-size);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);margin-top:clamp(.6rem,1.6vh,1.1rem)">本地优先 · 数据自持 · 运动 专注 想法 情绪</p>
+      </div>
+    </section>
+
+    <script>
+      /* ===========================================
+         MINI VISUALS — build heatmap / calendar / legend
+         (deterministic, just for show)
+         =========================================== */
+      (function buildHeat() {
+        const el = document.getElementById("heat");
+        if (!el) return;
+        const levels = ["", "l1", "l2", "l3", "l4"];
+        // 12 weeks * 7 days, a seeded-ish pattern
+        let seed = 7;
+        const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+        for (let i = 0; i < 12 * 7; i++) {
+          const r = rnd();
+          const lvl = r < 0.42 ? 0 : r < 0.62 ? 1 : r < 0.8 ? 2 : r < 0.92 ? 3 : 4;
+          const cell = document.createElement("i");
+          if (levels[lvl]) cell.className = levels[lvl];
+          el.appendChild(cell);
+        }
+      })();
+
+      (function buildMood() {
+        const cal = document.getElementById("cal");
+        const legend = document.getElementById("mlegend");
+        if (!cal) return;
+        const EM = [
+          { k: "开心", c: "#c0902f", svg: '<line x1="3.5" y1="17.5" x2="20.5" y2="17.5"/><path d="M8 17.5a4 4 0 0 1 8 0"/><line x1="12" y1="5.5" x2="12" y2="8"/><line x1="6" y1="8.6" x2="7.7" y2="10.3"/><line x1="18" y1="8.6" x2="16.3" y2="10.3"/>' },
+          { k: "平静", c: "#3f6f63", svg: '<path d="M12 21v-8.5"/><path d="M12 13c0-3 2.3-5 5.4-5 0 3-2.3 5-5.4 5z"/><path d="M12 15c0-2.4-2-4-4.6-4 0 2.4 2 4 4.6 4z"/>' },
+          { k: "焦虑", c: "#c0432a", svg: '<path d="M12 4a8 8 0 1 1-7.6 5.6"/><path d="M12 8a4 4 0 1 1-3.5 2.2"/>' },
+          { k: "难过", c: "#4a5b6b", svg: '<path d="M7.5 14a3.4 3.4 0 0 1 .2-6.8A4.4 4.4 0 0 1 16 7a3.2 3.2 0 0 1 .3 7H7.5z"/><line x1="9" y1="17" x2="8" y2="20"/><line x1="13" y1="17" x2="12" y2="20"/><line x1="17" y1="17" x2="16" y2="20"/>' },
+          { k: "恐惧", c: "#5b3a40", svg: '<path d="M16 13.2A6 6 0 1 1 9.4 5.4 4.7 4.7 0 0 0 16 13.2z"/>' },
+          { k: "很难描述", c: "#8a7f69", svg: '<line x1="4.5" y1="9" x2="16" y2="9"/><line x1="8" y1="12.5" x2="19.5" y2="12.5"/><line x1="5.5" y1="16" x2="15" y2="16"/>' },
+        ];
+        const ICON = (e, size) => `<span class="mi" style="color:${e.c};width:${size};height:${size}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${e.svg}</svg></span>`;
+        // a month-ish grid (5 weeks), some days tinted by emotion
+        let seed = 19;
+        const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+        for (let i = 0; i < 35; i++) {
+          const cell = document.createElement("i");
+          const r = rnd();
+          if (i < 30 && r > 0.45) cell.style.background = EM[Math.floor(rnd() * EM.length)].c;
+          cal.appendChild(cell);
+        }
+        legend.innerHTML = EM.map((e) => `<span>${ICON(e, "15px")}${e.k}</span>`).join("");
+      })();
+
+      /* ===========================================
+         SLIDE PRESENTATION CONTROLLER
+         =========================================== */
+      class SlidePresentation {
+        constructor() {
+          this.slides = Array.from(document.querySelectorAll(".slide"));
+          this.current = 0;
+          this.progress = document.querySelector(".progress-bar");
+          this.navDots = document.querySelector(".nav-dots");
+          this.locked = false;
+          this.observe();
+          this.buildDots();
+          this.keys();
+          this.wheel();
+          this.touch();
+          this.hashJump();
+        }
+        hashJump() {
+          const n = parseInt((location.hash || "").replace(/\D/g, ""), 10);
+          if (!(n >= 1 && n <= this.slides.length)) return;
+          const target = this.slides[n - 1];
+          target.classList.add("visible"); // force the reveal regardless of observer timing
+          const root = document.documentElement;
+          const prev = root.style.scrollBehavior;
+          root.style.scrollBehavior = "auto"; // instant jump (avoid smooth/snap fight)
+          setTimeout(() => {
+            target.scrollIntoView();
+            this.current = n - 1;
+            this.sync();
+            root.style.scrollBehavior = prev;
+          }, 90);
+        }
+        observe() {
+          const io = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((en) => {
+                if (en.isIntersecting) {
+                  en.target.classList.add("visible");
+                  this.current = this.slides.indexOf(en.target);
+                  this.sync();
+                }
+              });
+            },
+            { threshold: 0.55 }
+          );
+          this.slides.forEach((s) => io.observe(s));
+          this.slides[0].classList.add("visible");
+        }
+        sync() {
+          const pct = this.slides.length > 1 ? (this.current / (this.slides.length - 1)) * 100 : 0;
+          if (this.progress) this.progress.style.width = pct + "%";
+          if (this.navDots)
+            Array.from(this.navDots.children).forEach((d, i) => d.classList.toggle("active", i === this.current));
+        }
+        buildDots() {
+          if (!this.navDots) return;
+          this.navDots.innerHTML = ""; // clear before build (avoid duplicates on re-open)
+          this.slides.forEach((_, i) => {
+            const b = document.createElement("button");
+            b.setAttribute("aria-label", "第 " + (i + 1) + " 页");
+            if (i === 0) b.classList.add("active");
+            b.addEventListener("click", () => this.go(i));
+            this.navDots.appendChild(b);
+          });
+        }
+        go(i) {
+          i = Math.max(0, Math.min(this.slides.length - 1, i));
+          this.slides[i].scrollIntoView({ behavior: "smooth" });
+          history.replaceState(null, "", "#" + (i + 1));
+        }
+        keys() {
+          window.addEventListener("keydown", (e) => {
+            if (["ArrowDown", "ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); this.go(this.current + 1); }
+            else if (["ArrowUp", "ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); this.go(this.current - 1); }
+            else if (e.key === "Home") { e.preventDefault(); this.go(0); }
+            else if (e.key === "End") { e.preventDefault(); this.go(this.slides.length - 1); }
+          });
+        }
+        wheel() {
+          window.addEventListener(
+            "wheel",
+            (e) => {
+              if (this.locked || Math.abs(e.deltaY) < 24) return;
+              this.locked = true;
+              this.go(this.current + (e.deltaY > 0 ? 1 : -1));
+              setTimeout(() => (this.locked = false), 650);
+            },
+            { passive: true }
+          );
+        }
+        touch() {
+          let y0 = null;
+          window.addEventListener("touchstart", (e) => (y0 = e.touches[0].clientY), { passive: true });
+          window.addEventListener(
+            "touchend",
+            (e) => {
+              if (y0 === null) return;
+              const dy = y0 - e.changedTouches[0].clientY;
+              if (Math.abs(dy) > 48) this.go(this.current + (dy > 0 ? 1 : -1));
+              y0 = null;
+            },
+            { passive: true }
+          );
+        }
+      }
+      new SlidePresentation();
+    </script>
+  </body>
+</html>
