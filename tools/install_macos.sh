@@ -5,6 +5,21 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+if [[ "$ROOT_DIR" == *:* ]]; then
+  cat <<EOF
+当前项目目录里包含英文冒号 `:`，Python 会拒绝在这里创建虚拟环境。
+
+当前目录：
+$ROOT_DIR
+
+请把项目放到一个不带 `:` 的目录里，例如：
+$HOME/daily-practice-wechat-assistant
+
+如果你是用一键安装命令装的新电脑版本，重新运行后在“安装到哪里”那里直接回车即可。
+EOF
+  exit 1
+fi
+
 if [[ "${OSTYPE:-}" != darwin* ]]; then
   echo "提示：这个脚本主要为 macOS 准备，当前系统是 ${OSTYPE:-unknown}。"
   echo "如果你只是想继续安装，也可以直接回车继续。"

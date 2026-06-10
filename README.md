@@ -289,6 +289,11 @@ curl -fsSL https://raw.githubusercontent.com/Yukon594/daily-practice-wechat-assi
 - 让你直接输入 LLM API key
 - 安装完成后可直接进入命令行模式
 
+注意：
+
+- 当脚本问“安装到哪里”时，最稳的做法是直接回车用默认目录
+- 不要输入带英文冒号 `:` 的 Finder 风格路径
+
 ### 已经下载仓库后的本地安装
 
 如果你已经手动下载好了仓库，再执行这条：

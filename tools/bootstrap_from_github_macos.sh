@@ -25,6 +25,22 @@ read -r -p "安装到哪里？直接回车使用默认目录 [${DEFAULT_TARGET_D
 target_dir="${target_dir:-$DEFAULT_TARGET_DIR}"
 target_dir="${target_dir/#\~/$HOME}"
 
+if [[ "$target_dir" == *:* ]]; then
+  cat <<EOF
+安装目录里不能包含英文冒号 `:`。
+
+你刚才输入的是：
+$target_dir
+
+在 macOS 终端里，路径应该长这样：
+/Users/yourname/Desktop/my-folder
+
+不要使用 Finder 风格的冒号路径。
+最简单的做法是重新运行脚本，然后直接回车使用默认目录。
+EOF
+  exit 1
+fi
+
 if [[ -e "$target_dir" ]]; then
   echo "目标目录已经存在：$target_dir"
   read -r -p "是否覆盖这个目录里的内容？[y/N] " overwrite
