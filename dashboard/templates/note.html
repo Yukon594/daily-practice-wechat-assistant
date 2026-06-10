@@ -183,6 +183,9 @@
       }
       function renderMarkdown(src) {
         src = src.replace(/^---[\s\S]*?---\s*/, "");
+        // The page already shows the note title as the big H1; drop a leading
+        // `# 标题` line in the body so散文/读书 notes don't repeat it.
+        src = src.replace(/^\s*#\s+.*(\r?\n)+/, "");
         const lines = src.split("\n");
         let html = "";
         let inList = false;

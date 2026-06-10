@@ -3,7 +3,20 @@ from __future__ import annotations
 import unittest
 from unittest.mock import Mock
 
-from core.exercise import parse_exercise
+from core.exercise import looks_like_exercise_undo, parse_exercise
+
+
+class ExerciseUndoDetectionTest(unittest.TestCase):
+    def test_detects_explicit_and_recent_undo(self) -> None:
+        self.assertTrue(looks_like_exercise_undo("删掉刚才的运动"))
+        self.assertTrue(looks_like_exercise_undo("撤销运动"))
+        self.assertTrue(looks_like_exercise_undo("去掉刚才那条跑步"))
+        self.assertTrue(looks_like_exercise_undo("删除最近一条记录"))
+
+    def test_ignores_non_undo_or_unrelated(self) -> None:
+        self.assertFalse(looks_like_exercise_undo("今天跑步5公里"))
+        self.assertFalse(looks_like_exercise_undo("删掉这个想法的标题"))  # no exercise/recency cue
+        self.assertFalse(looks_like_exercise_undo("你好"))
 
 
 class ExerciseParsingTest(unittest.TestCase):

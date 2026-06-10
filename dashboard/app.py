@@ -109,8 +109,12 @@ def mood_calendar():
     return jsonify(store.get_mood_calendar_month(target))
 
 
+TRASH_RETENTION_DAYS = 30
+
+
 @app.route("/api/notes")
 def notes():
+    store.purge_expired_trash(TRASH_RETENTION_DAYS)
     query = request.args.get("q", "").strip()
     category = request.args.get("category", "").strip() or None
     return jsonify(
@@ -149,6 +153,66 @@ def update_note_category(note_id: int):
             "note": updated,
         }
     )
+
+
+@app.route("/api/notes/<int:note_id>/edit", methods=["POST"])
+def edit_note(note_id: int):
+    payload = request.get_json(silent=True) or {}
+    title = str(payload.get("title", "")).strip()
+    body = str(payload.get("body", ""))
+    if not title:
+        return jsonify({"error": "title is required"}), 400
+    if not store.get_note_by_id(note_id):
+        abort(404)
+    try:
+        store.update_note_content(note_id, title, body)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"ok": True, "note": store.get_note_by_id(note_id)})
+
+
+@app.route("/api/notes/<int:note_id>/delete", methods=["POST"])
+def delete_note(note_id: int):
+    try:
+        store.trash_note(note_id)
+    except ValueError:
+        abort(404)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/notes/<int:note_id>/restore", methods=["POST"])
+def restore_note(note_id: int):
+    try:
+        store.restore_note(note_id)
+    except ValueError:
+        abort(404)
+    return jsonify({"ok": True, "note": store.get_note_by_id(note_id)})
+
+
+@app.route("/api/notes/<int:note_id>/purge", methods=["POST"])
+def purge_note(note_id: int):
+    try:
+        store.purge_note(note_id)
+    except ValueError:
+        abort(404)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/trash")
+def trash():
+    store.purge_expired_trash(TRASH_RETENTION_DAYS)
+    return jsonify(
+        {
+            "notes": store.list_trashed_notes(TRASH_RETENTION_DAYS),
+            "retention_days": TRASH_RETENTION_DAYS,
+        }
+    )
+
+
+@app.route("/api/trash/empty", methods=["POST"])
+def empty_trash():
+    removed = store.empty_trash()
+    return jsonify({"ok": True, "removed": removed})
 
 
 if __name__ == "__main__":

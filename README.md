@@ -240,36 +240,13 @@
 
 ## 安装与接入
 
-### 先确认你要不要接微信
-
-如果你只是想先体验，不需要马上装 OpenClaw。
-
-推荐顺序是：
-
-1. 先跑本地 CLI
-2. 再开本地网页看板
-3. 最后再接微信
-
-这是对小白最稳的路径，因为出了问题时更容易定位。
-
 ### 你需要先下载什么
-
-如果你只想先本地跑起来，你只需要这些：
 
 1. `Python 3`
 2. 这个仓库代码
 3. 一个可用的 LLM API key
-
-这个项目本身的 Python 依赖只有两个：
-
-- `requests`
-- `flask`
-
-如果你想接微信，再额外需要：
-
-1. `Node.js`
-2. `OpenClaw`
-3. 微信插件 `@tencent-weixin/openclaw-weixin-cli`
+4. `Node.js`
+5. `OpenClaw`
 
 ### 新电脑最简单的一条命令
 
@@ -287,144 +264,14 @@ curl -fsSL https://raw.githubusercontent.com/Yukon594/daily-practice-wechat-assi
 - 安装依赖
 - 生成 `config.json`
 - 让你直接输入 LLM API key
-- 安装完成后可直接进入命令行模式
 
-### 已经下载仓库后的本地安装
-
-如果你已经手动下载好了仓库，再执行这条：
+安装完成后，项目就会放在：
 
 ```bash
-bash "$HOME/daily-practice-wechat-assistant/tools/install_macos.sh"
+$HOME/daily-practice-wechat-assistant
 ```
 
-这个本地安装脚本会自动帮你：
-
-- 创建 `.venv`
-- 安装依赖
-- 生成 `config.json`
-- 让你直接输入 LLM API key
-- 安装完成后可直接进入命令行模式
-
-如果你是手动下载到别的目录，也可以把上面这条里的路径改成你自己的目录。
-
-### 手动安装
-
-在项目根目录执行：
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp config.example.json config.json
-```
-
-如果后面重开一个终端，记得先重新激活虚拟环境：
-
-```bash
-source .venv/bin/activate
-```
-
-### 3 分钟最简配置
-
-如果你继续用默认的 DeepSeek，最少只需要改 1 个字段：
-
-- `llm_api_key`
-
-如果你要换成别的模型平台，再改这 3 个字段：
-
-- `llm_api_key`
-- `llm_base_url`
-- `llm_model`
-
-默认模板是：
-
-```json
-{
-  "llm_provider": "deepseek",
-  "llm_api_key": "YOUR_LLM_API_KEY",
-  "llm_base_url": "https://api.deepseek.com",
-  "llm_model": "deepseek-chat"
-}
-```
-
-其中：
-
-- `llm_provider` 只是给人看的备注字段
-- 真正参与调用的是 `llm_api_key`、`llm_base_url`、`llm_model`
-
-`llm_base_url` 既可以填基础地址，例如：
-
-- `https://api.deepseek.com`
-
-也可以直接填完整接口地址，只要最终能请求到：
-
-- `/chat/completions`
-
-为了兼容老用户，代码里仍然接受旧字段：
-
-- `deepseek_api_key`
-- `deepseek_base_url`
-- `deepseek_model`
-
-但新安装时更推荐直接用：
-
-- `llm_api_key`
-- `llm_base_url`
-- `llm_model`
-
-如果你是常规 macOS 用户，可以先把：
-
-```json
-"pomodoro_settings_path": ""
-```
-
-保持留空，程序会先自动找常见路径。
-
-### 先用命令行跑通
-
-```bash
-bash "$HOME/daily-practice-wechat-assistant/tools/run_cli_macos.sh"
-```
-
-你可以试这些：
-
-- `今天跑步5公里 32分钟`
-- `看看这个月专注了多久`
-- `今天有点焦虑`
-- `我想给番茄钟加个周回顾入口`
-
-单条测试也可以：
-
-```bash
-python3 cli.py --once "今天跑步5公里 32分钟"
-python3 cli.py --once "看看这个月专注了多久"
-python3 cli.py --once "我想给番茄钟加个周回顾入口"
-```
-
-### 启动本地网页看板
-
-```bash
-bash "$HOME/daily-practice-wechat-assistant/tools/run_dashboard_macos.sh"
-```
-
-### 想先看效果？用演示数据
-
-仓库带了一个隔离演示数据工具，它只会写到 `data_demo/`，不会碰你的真实数据。
-
-```bash
-python3 tools/seed_demo.py
-ASSISTANT_DATA_DIR=./data_demo python3 dashboard/app.py
-```
-
-清空演示数据：
-
-```bash
-python3 tools/seed_demo.py --clear
-```
-
-### 微信接入
-
-这一段假设你还没有安装 OpenClaw。
+### 安装 OpenClaw
 
 根据 OpenClaw 官方 Getting Started 文档，建议：
 
@@ -455,18 +302,9 @@ export PATH="$HOME/.openclaw/bin:$PATH"
 openclaw onboard --install-daemon
 ```
 
-如果你想直接打开 OpenClaw 面板，最稳的方式是运行：
+### 接微信
 
-```bash
-bash "$HOME/daily-practice-wechat-assistant/tools/open_openclaw_dashboard_macos.sh"
-```
-
-这个脚本会自动尝试：
-
-- `openclaw dashboard`
-- 如果 `openclaw` 不在 PATH，就改用 `~/.openclaw/bin/openclaw`
-
-安装微信插件：
+安装微信插件并登录：
 
 ```bash
 npx -y @tencent-weixin/openclaw-weixin-cli install
@@ -481,30 +319,19 @@ openclaw config set session.dmScope per-account-channel-peer
 openclaw config set channels.openclaw-weixin.botAgent "WeChatAssistant/0.3.0"
 ```
 
-正式拿微信聊之前，先在本地测这几个命令：
+### 打开面板看数据
+
+如果你想直接打开 OpenClaw 面板，最稳的方式是运行：
 
 ```bash
-python3 skills/wechat-assistant/handle.py --text "今天跑步5公里 32分钟" --format json
-python3 skills/wechat-assistant/handle.py --text "看看这个月专注了多久" --format json
-python3 skills/wechat-assistant/handle.py --text "我想给番茄钟加个周回顾入口" --session-id wechat:test
-python3 skills/wechat-assistant/handle.py --text "记下来" --session-id wechat:test
+bash "$HOME/daily-practice-wechat-assistant/tools/open_openclaw_dashboard_macos.sh"
 ```
 
-### 对贴纸番茄钟用户最简单的路径
-
-如果你本来就在用贴纸番茄钟，最短路径其实是：
-
-1. 安装 Python 依赖
-2. 复制 `config.example.json` 为 `config.json`
-3. 填好 `llm_api_key` / `llm_base_url` / `llm_model`
-4. 直接运行：
+如果你想看这个项目自己的本地看板，运行：
 
 ```bash
-bash "$HOME/daily-practice-wechat-assistant/tools/run_cli_macos.sh"
 bash "$HOME/daily-practice-wechat-assistant/tools/run_dashboard_macos.sh"
 ```
-
-如果专注数据没有自动出现，再回头补 `pomodoro_settings_path`。
 
 ## 测试
 

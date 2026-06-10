@@ -162,6 +162,52 @@ class AssistantEnginePivotTest(unittest.TestCase):
 
             self.assertIn("本月专注 1小时", reply)
 
+    def test_undo_last_exercise_via_chat(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            engine = AssistantEngine(self._build_settings(root, root / "missing-settings.json"))
+
+            engine.handle_message("今天跑步5公里 32分钟", session_id="u1")
+            self.assertEqual(len(engine.store.list_recent_exercise_sessions()), 1)
+
+            undo = engine.handle_message("删掉刚才的运动", session_id="u1")
+            self.assertIn("已撤销", undo)
+            self.assertIn("跑步", undo)
+            self.assertEqual(len(engine.store.list_recent_exercise_sessions()), 0)
+
+            again = engine.handle_message("撤销运动", session_id="u1")
+            self.assertIn("没有可撤销", again)
+
+    def test_bare_undo_word_undoes_just_logged_exercise(self) -> None:
+        # F1: a bare 「去除」right after logging should undo it (recency window)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            engine = AssistantEngine(self._build_settings(root, root / "missing-settings.json"))
+            engine.handle_message("今天跑步5公里 32分钟", session_id="b1")
+            reply = engine.handle_message("去除", session_id="b1")
+            self.assertIn("已撤销", reply)
+            self.assertEqual(len(engine.store.list_recent_exercise_sessions()), 0)
+            self.assertIsNone(engine.store.get_today_mood())  # not logged as a junk mood
+
+    def test_bare_undo_word_without_recent_exercise_falls_through(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            engine = AssistantEngine(self._build_settings(root, root / "missing-settings.json"))
+            reply = engine.handle_message("去除", session_id="x1")  # nothing to undo
+            self.assertNotIn("已撤销", reply)  # not hijacked
+
+    def test_mood_prompt_does_not_swallow_non_mood_reply(self) -> None:
+        # F2: after a record the mood prompt is pending; a junk reply must NOT be logged
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            engine = AssistantEngine(self._build_settings(root, root / "missing-settings.json"))
+            engine.handle_message("今天跑步5公里 32分钟", session_id="m1")
+            engine.handle_message("谢谢", session_id="m1")
+            self.assertIsNone(engine.store.get_today_mood())
+            # but a real emotion word is still captured
+            engine.handle_message("焦虑", session_id="m1")
+            self.assertEqual(engine.store.get_today_mood()["emotion"], "焦虑")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -54,6 +54,10 @@ class Store:
                 )
                 """
             )
+            # soft-delete column for the trash bin (non-destructive on existing DBs)
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(notes)").fetchall()}
+            if "deleted_at" not in columns:
+                conn.execute("ALTER TABLE notes ADD COLUMN deleted_at TEXT")
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS exercise_sessions (
@@ -128,7 +132,7 @@ class Store:
         created_at = datetime.now().isoformat(timespec="seconds")
         session_ts = ts or session.get("ts") or date.today().isoformat()
         with self._connect() as conn:
-            conn.execute(
+            cursor = conn.execute(
                 """
                 INSERT INTO exercise_sessions (
                     ts, activity, duration_minutes, distance_km, calories, source, raw, created_at
@@ -146,7 +150,33 @@ class Store:
                     created_at,
                 ),
             )
-        return 1
+            return int(cursor.lastrowid)
+
+    def delete_last_exercise(self, within_seconds: Optional[int] = None) -> Optional[Dict]:
+        """Delete the most recently recorded exercise (chat-side undo); return it, or None.
+
+        When ``within_seconds`` is given, only delete if that latest row was created
+        within the window — so a bare 「去除」 can't nuke a much older record.
+        """
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT id, ts, activity, duration_minutes, distance_km, calories, source, created_at
+                FROM exercise_sessions
+                ORDER BY id DESC LIMIT 1
+                """
+            ).fetchone()
+            if not row:
+                return None
+            if within_seconds is not None:
+                try:
+                    age = (datetime.now() - datetime.fromisoformat(row["created_at"])).total_seconds()
+                except (TypeError, ValueError):
+                    age = 0
+                if age > within_seconds:
+                    return None
+            conn.execute("DELETE FROM exercise_sessions WHERE id = ?", (row["id"],))
+        return dict(row)
 
     def get_exercise_month_summary(self, target: Optional[date] = None) -> Dict:
         start, end = self._month_bounds(target)
@@ -1006,6 +1036,7 @@ class Store:
                 """
                 SELECT id, title, category, tags, file_path, created_at
                 FROM notes
+                WHERE deleted_at IS NULL
                 ORDER BY id DESC
                 LIMIT ?
                 """,
@@ -1024,11 +1055,29 @@ class Store:
                 """
                 SELECT category, COUNT(*) AS count
                 FROM notes
+                WHERE deleted_at IS NULL
                 GROUP BY category
                 ORDER BY count DESC, category ASC
                 """
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def get_all_tags(self, limit: int = 40) -> List[str]:
+        """Distinct tags across all notes, ordered by frequency (for reuse hints)."""
+        with self._connect() as conn:
+            rows = conn.execute("SELECT tags FROM notes").fetchall()
+        counts: Dict[str, int] = {}
+        for row in rows:
+            try:
+                tags = json.loads(row["tags"])
+            except (TypeError, ValueError):
+                continue
+            for tag in tags:
+                tag = str(tag).strip()
+                if tag:
+                    counts[tag] = counts.get(tag, 0) + 1
+        ordered = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+        return [tag for tag, _ in ordered[:limit]]
 
     @staticmethod
     def _build_snippet(content: str, query: str, radius: int = 42) -> Optional[str]:
@@ -1059,7 +1108,7 @@ class Store:
         category: Optional[str] = None,
         limit: int = 60,
     ) -> List[Dict]:
-        sql = "SELECT id, title, category, tags, file_path, created_at FROM notes WHERE 1=1"
+        sql = "SELECT id, title, category, tags, file_path, created_at FROM notes WHERE deleted_at IS NULL"
         params: List = []
         if category:
             sql += " AND category = ?"
@@ -1124,7 +1173,7 @@ class Store:
                 """
                 SELECT id, title, category, tags, file_path, created_at
                 FROM notes
-                WHERE title = ?
+                WHERE title = ? AND deleted_at IS NULL
                 ORDER BY id ASC
                 LIMIT 1
                 """,
@@ -1218,6 +1267,156 @@ class Store:
                 (category, str(new_path), note_id),
             )
         return new_path
+
+    @staticmethod
+    def _split_frontmatter(content: str) -> Tuple[str, str]:
+        """Return (frontmatter_block_including_closing_dashes, body). Empty FM if none."""
+        if not content.startswith("---"):
+            return "", content
+        end = content.find("\n---", 3)
+        if end == -1:
+            return "", content
+        return content[: end + 4], content[end + 4 :]
+
+    def update_note_content(self, note_id: int, title: str, body: str) -> Path:
+        """Edit a note's title + body (markdown). Category/tags/filename unchanged."""
+        title = str(title or "").strip()
+        if not title:
+            raise ValueError("title is required")
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT file_path FROM notes WHERE id = ?", (note_id,)
+            ).fetchone()
+            if not row:
+                raise ValueError(f"note {note_id} not found")
+            path = Path(row["file_path"])
+            content = path.read_text(encoding="utf-8") if path.exists() else ""
+            frontmatter, _ = self._split_frontmatter(content)
+            if frontmatter:
+                frontmatter = re.sub(
+                    r"^title:\s*.*$", f"title: {title}", frontmatter, count=1, flags=re.MULTILINE
+                )
+                new_content = frontmatter + "\n\n" + body.strip() + "\n"
+            else:
+                new_content = body.strip() + "\n"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(new_content, encoding="utf-8")
+            conn.execute("UPDATE notes SET title = ? WHERE id = ?", (title, note_id))
+        return path
+
+    # ---------- trash bin (soft delete, 30-day retention) ----------
+    def trash_note(self, note_id: int) -> None:
+        trash_dir = self.settings.notes_dir / ".trash"
+        trash_dir.mkdir(parents=True, exist_ok=True)
+        deleted_at = datetime.now().isoformat(timespec="seconds")
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT file_path FROM notes WHERE id = ? AND deleted_at IS NULL", (note_id,)
+            ).fetchone()
+            if not row:
+                raise ValueError(f"note {note_id} not found")
+            old_path = Path(row["file_path"])
+            new_path = trash_dir / f"{note_id}-{old_path.name}" if old_path.name else trash_dir / f"{note_id}.md"
+            if old_path.exists():
+                old_path.replace(new_path)
+            conn.execute(
+                "UPDATE notes SET deleted_at = ?, file_path = ? WHERE id = ?",
+                (deleted_at, str(new_path), note_id),
+            )
+
+    def restore_note(self, note_id: int) -> Path:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT category, file_path FROM notes WHERE id = ? AND deleted_at IS NOT NULL",
+                (note_id,),
+            ).fetchone()
+            if not row:
+                raise ValueError(f"note {note_id} not found in trash")
+            old_path = Path(row["file_path"])
+            target_dir = self.settings.notes_dir / row["category"]
+            target_dir.mkdir(parents=True, exist_ok=True)
+            # strip the "<id>-" prefix added when trashing
+            base_name = old_path.name
+            prefix = f"{note_id}-"
+            if base_name.startswith(prefix):
+                base_name = base_name[len(prefix):]
+            new_path = target_dir / (base_name or f"{note_id}.md")
+            suffix = 2
+            while new_path.exists():
+                new_path = target_dir / f"{new_path.stem}-{suffix}{new_path.suffix or '.md'}"
+                suffix += 1
+            if old_path.exists():
+                old_path.replace(new_path)
+            conn.execute(
+                "UPDATE notes SET deleted_at = NULL, file_path = ? WHERE id = ?",
+                (str(new_path), note_id),
+            )
+        return new_path
+
+    def list_trashed_notes(self, retention_days: int = 30) -> List[Dict]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, title, category, tags, deleted_at, created_at
+                FROM notes
+                WHERE deleted_at IS NOT NULL
+                ORDER BY deleted_at DESC
+                """
+            ).fetchall()
+        out: List[Dict] = []
+        today = date.today()
+        for row in rows:
+            item = dict(row)
+            item["tags"] = json.loads(item["tags"])
+            try:
+                deleted_day = datetime.fromisoformat(item["deleted_at"]).date()
+                item["days_left"] = max(retention_days - (today - deleted_day).days, 0)
+            except (TypeError, ValueError):
+                item["days_left"] = retention_days
+            out.append(item)
+        return out
+
+    def _delete_note_rows(self, note_ids: List[int]) -> None:
+        if not note_ids:
+            return
+        with self._connect() as conn:
+            placeholders = ",".join("?" for _ in note_ids)
+            rows = conn.execute(
+                f"SELECT file_path FROM notes WHERE id IN ({placeholders})", note_ids
+            ).fetchall()
+            for row in rows:
+                try:
+                    Path(row["file_path"]).unlink(missing_ok=True)
+                except OSError:
+                    pass
+            conn.execute(f"DELETE FROM notes WHERE id IN ({placeholders})", note_ids)
+
+    def purge_note(self, note_id: int) -> None:
+        """Permanently delete a single trashed note (row + file)."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT id FROM notes WHERE id = ? AND deleted_at IS NOT NULL", (note_id,)
+            ).fetchone()
+        if not row:
+            raise ValueError(f"note {note_id} not found in trash")
+        self._delete_note_rows([note_id])
+
+    def empty_trash(self) -> int:
+        with self._connect() as conn:
+            ids = [r["id"] for r in conn.execute(
+                "SELECT id FROM notes WHERE deleted_at IS NOT NULL"
+            ).fetchall()]
+        self._delete_note_rows(ids)
+        return len(ids)
+
+    def purge_expired_trash(self, retention_days: int = 30) -> int:
+        cutoff = (datetime.now() - timedelta(days=retention_days)).isoformat(timespec="seconds")
+        with self._connect() as conn:
+            ids = [r["id"] for r in conn.execute(
+                "SELECT id FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?", (cutoff,)
+            ).fetchall()]
+        self._delete_note_rows(ids)
+        return len(ids)
 
     def get_note_session(self, session_id: str) -> Optional[Dict]:
         with self._connect() as conn:

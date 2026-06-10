@@ -45,6 +45,33 @@ def detect_activity(text: str) -> Optional[str]:
     return None
 
 
+_UNDO_VERBS = ("撤销", "删掉", "删除", "去掉", "去除", "撤回")
+_UNDO_HINTS = ("刚才", "上一条", "最近一条", "最近那条", "这条", "那条", "刚记", "刚刚", "记录")
+# filler that may surround a bare undo phrase (e.g. 「撤销一下」「删掉吧」「去掉那条」)
+_UNDO_FILLER_RE = re.compile(
+    r"(撤销|撤回|去除|删掉|删除|去掉|不要|取消|一下|吧|了|啦|呗|刚才|这|那|条|个|的|，|。|！|？|!|\?|\s)"
+)
+
+
+def looks_like_exercise_undo(text: str) -> bool:
+    """A chat-side 'undo my last exercise' gesture.
+
+    Matches explicit「删掉刚才的运动/撤销运动」, recency phrasing「删掉刚才那条」, and a
+    bare「去除/删掉/撤销」(handled with a recency window so it can't nuke an old record).
+    """
+    raw = (text or "").strip()
+    if not raw or len(raw) > 20:
+        return False
+    if not any(verb in raw for verb in _UNDO_VERBS):
+        return False
+    if detect_activity(raw) is not None or "运动" in raw or "健身" in raw:
+        return True
+    if any(hint in raw for hint in _UNDO_HINTS):
+        return True
+    # bare undo: nothing substantive remains once verbs/fillers are stripped
+    return _UNDO_FILLER_RE.sub("", raw) == ""
+
+
 def looks_like_exercise_text(text: str) -> bool:
     activity = detect_activity(text)
     if not activity:

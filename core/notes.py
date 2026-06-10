@@ -9,7 +9,12 @@ from core.llm import DeepSeekClient, LLMError
 from core.store import Store
 
 FINALIZE_RE = re.compile(r"(记下来|就这样|保存|先这样|可以了|收录|写下来)")
-CANCEL_RE = re.compile(r"(取消|算了|先不记|结束这个想法)")
+# A cancel must be a standalone skip phrase — NOT a cancel word buried inside a real
+# thought (e.g. 「我打算先跳过登录」must keep collecting, not abort the note).
+_CANCEL_WORDS = (
+    r"取消|算了|先不记|不记了|不记录|不用记|不想记|跳过|别记|不保存|这条不记|结束这个想法|不要了"
+)
+CANCEL_RE = re.compile(rf"^(这条|先|那就|那)?\s*(?:{_CANCEL_WORDS})\s*[了吧啦呗。.！!~\s]*$")
 # a user turn that is *only* a control phrase shouldn't leak into the note body
 BARE_TRIGGER_RE = re.compile(r"^(记下来|就这样吧?|保存|先这样|可以了|收录|写下来|好的?|嗯+)$")
 FORCE_CATEGORY_RE = re.compile(r"^(?:保存到|记到|归档到|放到|收录到)\s*([^\s，。,！!？?]+?)(?:分类|里|里面)?$")
@@ -23,42 +28,47 @@ STABLE_TYPES = (TYPE_ACTION, TYPE_SOURCE, TYPE_REFLECTION, TYPE_REVIEW, TYPE_OTH
 
 # ---------- prompts ----------
 CONVERSE_SYSTEM = """\
-你是「日迹」里的想法整理伙伴，中文、口语化、简洁。用户随手发来一个想法，你用尽量少的对话帮他理清，然后交给整理环节。
+你是「日迹」里的想法整理伙伴。口吻像朋友——口语、温和、不评判、不替用户下结论；一次只问一个开放的小问题，让他愿意多说真心话。
 
-每轮只做一件事：先判断这条想法的「性质」，再据此决定「追问一个短问题」还是「已经够了，可以收」。注意——按性质来定策略，而不是按固定分类（用户有自己的、会不断增加的分类，别假设只有某几类）。常见性质与对应策略：
+每轮只做一件事：先判断这条想法的「性质」，再据此决定「追问一个短问题」还是「已经够了，可以收」。按性质定策略，而不是按固定分类（用户有自己的、会不断增加的分类，别假设只有某几类）。各性质的引导策略与「问题库」（择一发问）：
 
-- 可执行/计划类（要做的事、方案、功能、改进）：可以深挖。优先问最关键的一点——要解决谁的什么问题 / 比现状好在哪 / 最站不住脚的假设是什么；可提一个挑战盲点的反问。最多追问 2~3 轮。
-- 来自某个来源（书、文章、播客、课程…）：适度拓展但克制。务必问清并确认来源名称（书名/标题）——因为同一来源要并入同一条笔记；可问是哪个观点触发了你、你同意还是反对。
-- 感受/观察/情绪/随想：最多问一个温和的小问题；若已说清楚，直接判定够了，不要硬聊。
-- 其它/拿不准：问一个最能让想法具体起来的问题。
+- 感受/观察/情绪/随想：**默认克制**——只有当感受含糊、只有一个情绪词、或明显没说透时，才温和追一句；已经说清楚就直接判够了，不要硬聊。问题库：①精准化「这个感受更接近哪一种——失落、烦躁，还是别的？」②具象化「今天哪个具体瞬间最有这感觉？」③深一层「往下挖一层，它其实在提醒你最在意什么？」
+- 来自某个来源（书、文章、播客、课程…）：**批判 + 应用并重**，并务必问清/确认来源名称（书名/标题）——因为同一来源要并入同一条笔记。问题库：①立场「你更同意，还是有想反驳的地方？哪里让你犹豫？」②论据「作者凭什么这么说？这个前提站得住吗？」③关联应用「它跟你原来的看法是冲突还是印证？能用到你正在做的哪件事？」最多 2 轮。
+- 可执行/计划类（要做的事、方案、功能、改进）：帮他想清楚。优先问——要解决谁的什么问题 / 比现状好在哪 / 最站不住脚的假设是什么；可提一个挑战盲点的反问。最多 2~3 轮。
+- 复盘/回顾：挖出真经验。问——如果重来最想改的一个动作 / 哪一步本可以提前预判 / 成了的部分是运气还是可复制。
+- 其它/拿不准：问一个最能让想法具体起来的小问题。
 
 结束条件：信息足以整理成一条有价值的笔记，或用户说了「记下来/就这样/可以了」，或属于随想类且已说清。
 
 只输出 JSON，不要任何多余文字：
 {"type":"行动|来源|随想|复盘|其它","enough":true|false,"reply":"给用户看的一句话"}
-其中 reply：enough=false 时是一个具体的短追问；enough=true 时是一句简短确认（如「这条挺清楚了，帮你整理成笔记？」）。reply ≤40 字，一次只问一个问题，口吻自然。
+其中 reply：enough=false 时是一个具体的短追问；enough=true 时是一句简短确认（如「这条挺清楚了，帮你整理成笔记？」）。reply ≤40 字，一次只问一个问题，口吻像朋友。
 """
 
 BUILD_SYSTEM = """\
-你是「日迹」的笔记整理器。把下面这段关于某个想法的对话整理成结构化笔记。中文，只输出 JSON。
+你是「日迹」的笔记整理器。把下面这段关于某个想法的对话整理成笔记。中文，只输出 JSON。
 
-核心原则——自适应：每个板块是否出现，取决于这条想法「本身的性质」，而不是它属于哪个分类（分类是用户自定义的、会不断增加，别把板块和某个具体分类名绑死）。逐项按下面的判断来定，空的就留空，不要硬凑：
+核心原则——**按想法的「性质」(type) 决定写法**，不同 type 给不同的字段，空的就留空、不要硬凑。默认散文化：能用一段流畅文字说清的，就别拆成零碎的板块。
 
-- next_steps（可执行的下一步）：仅当这条想法是「要去做的事 / 计划 / 可推进的方案」时才给；纯感受、观察、情绪、纯记录就留空，别强行行动化。
-- challenge（盲点/反问）：仅当其中有一个主张、决定或假设值得被质疑时，给一个挑战性反问；温和的随想可留空，或给一个温柔的反思问句。
-- is_book_note / book：当这条想法来自某个具体来源（某本书/文章/播客/课程）时，is_book_note=true，book 填来源名称，title 也用该名称（便于同一来源并入同一条笔记）；summary 整理「要点/摘录 + 你的看法」。否则 is_book_note=false、book 留空。
-- background（背景/触发点）：能还原「为什么会想到这件事」就给，通常有用。
-- summary（核心内容）：始终给，忠实保留用户原话的关键句，不过度改写或拔高。
-- one_liner（一句话/金句）：始终给，点出核心或最值得记住的一句。
-- related_hints：给 1~3 个便于关联到其它笔记的关键词/主题（用于双链）。
+按 type 分别这样写：
 
-分类 category：这是用户自己的分类体系，优先从已有分类里选：<<CATEGORIES>>。若都明显不合适，可新建一个简洁分类名（≤6 字），并令 category_is_new=true。注意：category 与上面的板块判断相互独立——不要因为分类名是什么就决定给哪些板块，始终看想法本身的性质。
+- **随想 / 其它**（感受、观察、情绪、随手的念头）：写成自然流畅的**第一人称段落**（summary，1~3 段），把触发点/背景顺手融进文字里，**不要分点、不要金句**。`title` 起一个精炼标题（≤14 字，点出这条随想的核心）。`one_liner / background / next_steps / lessons / challenge` 全部留空。
 
-type：必须只填这 5 个稳定值之一：行动 / 来源 / 随想 / 复盘 / 其它。
-tags：3~5 个，具体、可检索。
+- **来源**（来自某本书/文章/播客/课程）：is_book_note=true，`book` 填来源名称，`title` 也用该名称（便于同一来源并入同一条笔记）。`summary` 写成**一段「你对这个观点的看法/消化」**（不必引用原文）。`one_liner / background / next_steps / lessons / challenge` 留空。
+
+- **行动**（要去做的事 / 计划 / 方案 / 功能 / 改进）：`one_liner` = 一句话点题；`summary` = 一小段，说清要解决什么问题、比现状好在哪；`next_steps` = 可执行的下一步清单；`challenge` = **仅当其中有一个"赌得很大"的关键假设值得质疑时**才给一个挑战性反问，否则留空。`background / lessons` 留空。
+
+- **复盘**（回顾、总结、经验、踩坑）：`summary` = 经过叙述（发生了什么）；`lessons` = 这次学到的 1~3 条要点；`next_steps` = 下次怎么做的清单。`one_liner / background / challenge` 留空。
+
+通用字段：
+- `background` 不再单独成段，一律融进 `summary`，保持留空。
+- `related_hints`：给 1~3 个便于关联到其它笔记的关键词/主题（用于双链）。
+- `category`：用户自己的分类体系，优先从已有分类里选：<<CATEGORIES>>。若都明显不合适，可新建一个简洁分类名（≤6 字），并令 category_is_new=true。category 与写法相互独立——别因为分类名是什么就决定怎么写，始终看想法本身的性质。
+- `tags`：**3~4 个概念主题词**（如 专注 / 习惯 / 产品），便于聚合检索。**优先从已有标签里复用**：<<TAGS>>。已有近义标签就沿用（如已有"专注"就别另造"注意力/专注力"），只有确是新主题才新建。
+- `type`：必须只填这 5 个稳定值之一：行动 / 来源 / 随想 / 复盘 / 其它。
 
 输出 JSON（所有键都要在，空值用 "" 或 []）：
-{"type":"","title":"","is_book_note":false,"book":"","category":"","category_is_new":false,"tags":[],"one_liner":"","background":"","summary":"","next_steps":[],"challenge":"","related_hints":[]}
+{"type":"","title":"","is_book_note":false,"book":"","category":"","category_is_new":false,"tags":[],"one_liner":"","background":"","summary":"","next_steps":[],"lessons":[],"challenge":"","related_hints":[]}
 """
 
 
@@ -80,9 +90,11 @@ class NotesService:
         return bool(self.store.get_note_session(session_id))
 
     def cancel_if_needed(self, session_id: str, text: str) -> Optional[str]:
-        if CANCEL_RE.search(text):
+        # only treat skip/cancel words as a cancel when a collection is actually in progress,
+        # so bare 「跳过/不记录」 outside a session falls through to normal handling
+        if self.has_active_session(session_id) and CANCEL_RE.match(text.strip()):
             self.store.clear_note_session(session_id)
-            return "这条想法收集先取消了。你之后随时可以重新开始。"
+            return "好的，这条就不记了。想记的时候随时再发给我。"
         return None
 
     # ---------- main flow ----------
@@ -158,20 +170,29 @@ class NotesService:
     def _fallback_decision(self, messages: List[Dict], first_turn: bool) -> Dict:
         user_messages = [m["content"] for m in messages if m["role"] == "user"]
         inferred_type = self._infer_type("\n".join(user_messages))
+        latest = user_messages[-1] if user_messages else ""
+        joined = "\n".join(user_messages)
+
+        # 随想 / 其它：克制——说清楚了就直接收，只有含糊/太短才温和追一句
+        if inferred_type in (TYPE_REFLECTION, TYPE_OTHER):
+            if len(joined) >= 16 or not first_turn:
+                return {"type": inferred_type, "enough": True, "reply": "嗯，这条挺清楚了，帮你记下来。"}
+            return {"type": inferred_type, "enough": False, "reply": "这个感受更接近哪一种？或者哪个瞬间最有感觉？"}
+
         if first_turn:
             if inferred_type == TYPE_SOURCE:
-                return {"type": inferred_type, "enough": False, "reply": "这条想法是来自哪本书、文章或播客？"}
-            return {"type": inferred_type, "enough": False, "reply": "你最想先说清楚的是哪一点？"}
+                return {"type": inferred_type, "enough": False, "reply": "这条是来自哪本书或文章？你更同意还是想反驳？"}
+            if inferred_type == TYPE_REVIEW:
+                return {"type": inferred_type, "enough": False, "reply": "如果重来一次，你最想改的一个动作是什么？"}
+            return {"type": inferred_type, "enough": False, "reply": "这到底是想解决谁的什么问题？"}
+
         if len(user_messages) >= 3:
             return {"type": inferred_type, "enough": True, "reply": "这条够清楚了，帮你整理成笔记。"}
-        latest = user_messages[-1] if user_messages else ""
-        if inferred_type == TYPE_SOURCE and not re.search(r"(书名|标题|作者|播客|课程|文章)", latest):
-            return {"type": inferred_type, "enough": False, "reply": "来源名称是什么？我好帮你并到同一条笔记。"}
+        if inferred_type == TYPE_SOURCE and not re.search(r"(书名|标题|作者|播客|课程|文章|《)", latest):
+            return {"type": inferred_type, "enough": False, "reply": "来源叫什么？我好帮你并到同一条笔记。"}
         if inferred_type == TYPE_REVIEW:
-            return {"type": inferred_type, "enough": False, "reply": "这次最值得记住的一条经验是什么？"}
-        if "为什么" not in latest and "原因" not in latest:
-            return {"type": inferred_type, "enough": False, "reply": "你为什么会想到这件事？背后的触发点是什么？"}
-        return {"type": inferred_type, "enough": False, "reply": "如果只做一个最小可行版本，你会先做哪一步？"}
+            return {"type": inferred_type, "enough": False, "reply": "这次哪一步其实本可以提前预判？"}
+        return {"type": inferred_type, "enough": False, "reply": "比现在的做法好在哪？最站不住脚的假设是什么？"}
 
     # ---------- finalize: build, link, render, save / merge ----------
     def _finalize(self, session_id: str, messages: List[Dict], forced_category: Optional[str] = None) -> str:
@@ -255,6 +276,8 @@ class NotesService:
             try:
                 system = BUILD_SYSTEM.replace(
                     "<<CATEGORIES>>", ", ".join(self.settings.note_categories)
+                ).replace(
+                    "<<TAGS>>", ", ".join(self.store.get_all_tags()) or "（暂无，自行命名）"
                 )
                 payload = self.llm.chat(
                     [{"role": "system", "content": system}] + messages,
@@ -302,11 +325,12 @@ class NotesService:
             "book": s("book"),
             "category": category,
             "category_is_new": category_is_new,
-            "tags": lst("tags")[:6],
+            "tags": lst("tags")[:4],
             "one_liner": s("one_liner"),
             "background": s("background"),
             "summary": s("summary"),
             "next_steps": lst("next_steps"),
+            "lessons": lst("lessons")[:3],
             "challenge": s("challenge"),
             "related_hints": lst("related_hints"),
         }
@@ -322,11 +346,12 @@ class NotesService:
             "book": "",
             "category": self._classify_category(" ".join(user_messages)),
             "category_is_new": False,
-            "tags": self._extract_tags(" ".join(user_messages)),
+            "tags": self._extract_tags(" ".join(user_messages))[:4],
             "one_liner": "",
-            "background": user_messages[1] if len(user_messages) > 1 else "",
+            "background": "",
             "summary": "\n".join(user_messages),
             "next_steps": [],
+            "lessons": [],
             "challenge": "",
             "related_hints": [],
         }
@@ -418,10 +443,10 @@ class NotesService:
                 deduped.append(token)
         return deduped[:5]
 
-    # ---------- hook 4: conditional markdown rendering ----------
-    def _render_markdown(self, note: Dict, related_titles: List[str]) -> str:
+    # ---------- hook 4: type-dispatched markdown rendering ----------
+    def _frontmatter(self, note: Dict) -> List[str]:
         tags = ", ".join(note.get("tags", []))
-        lines = [
+        return [
             "---",
             f"title: {note['title']}",
             f"category: {note['category']}",
@@ -432,25 +457,57 @@ class NotesService:
             "",
         ]
 
-        def section(heading: str, body: str) -> None:
-            lines.append(f"## {heading}")
-            lines.append(body)
-            lines.append("")
+    @staticmethod
+    def _related_line(related_titles: List[str]) -> str:
+        return " ".join(f"[[{title}]]" for title in related_titles)
 
-        if note.get("one_liner"):
-            section("一句话", note["one_liner"])
-        if note.get("summary"):
-            section("核心内容", note["summary"])
-        if note.get("background"):
-            section("背景 / 触发点", note["background"])
-        if note.get("next_steps"):
-            section("可行的下一步", "\n".join(f"- [ ] {step}" for step in note["next_steps"]))
-        if note.get("challenge"):
-            section("盲点 / 反方", note["challenge"])
-        if related_titles:
-            section("关联", " ".join(f"[[{title}]]" for title in related_titles))
-
+    def _render_markdown(self, note: Dict, related_titles: List[str]) -> str:
+        note_type = note.get("type", "")
+        if note_type == TYPE_ACTION:
+            body = self._render_action_body(note, related_titles)
+        elif note_type == TYPE_REVIEW:
+            body = self._render_review_body(note, related_titles)
+        else:
+            body = self._render_prose_body(note, related_titles)
+        lines = self._frontmatter(note) + body
         return "\n".join(lines).rstrip() + "\n"
+
+    def _render_prose_body(self, note: Dict, related_titles: List[str]) -> List[str]:
+        """随想 / 其它 / 无书名来源：标题 + 纯段落，无小标题。"""
+        lines: List[str] = [f"# {note['title']}", ""]
+        if note.get("summary"):
+            lines.append(note["summary"])
+            lines.append("")
+        if related_titles:
+            lines.append(self._related_line(related_titles))
+            lines.append("")
+        return lines
+
+    def _render_action_body(self, note: Dict, related_titles: List[str]) -> List[str]:
+        lines: List[str] = []
+        if note.get("one_liner"):
+            lines += [f"**{note['one_liner']}**", ""]
+        if note.get("summary"):
+            lines += [note["summary"], ""]
+        if note.get("next_steps"):
+            lines += ["## 下一步", "\n".join(f"- [ ] {step}" for step in note["next_steps"]), ""]
+        if note.get("challenge"):
+            lines += ["## 盲点", note["challenge"], ""]
+        if related_titles:
+            lines += ["## 关联", self._related_line(related_titles), ""]
+        return lines
+
+    def _render_review_body(self, note: Dict, related_titles: List[str]) -> List[str]:
+        lines: List[str] = []
+        if note.get("summary"):
+            lines += [note["summary"], ""]
+        if note.get("lessons"):
+            lines += ["## 这次学到", "\n".join(f"- {item}" for item in note["lessons"]), ""]
+        if note.get("next_steps"):
+            lines += ["## 下次怎么做", "\n".join(f"- [ ] {step}" for step in note["next_steps"]), ""]
+        if related_titles:
+            lines += ["## 关联", self._related_line(related_titles), ""]
+        return lines
 
     def _book_frontmatter(self, note: Dict) -> str:
         tags = ", ".join(note.get("tags", []))
@@ -466,19 +523,12 @@ class NotesService:
         )
 
     def _render_book_entry(self, note: Dict, related_titles: List[str]) -> str:
+        """并入同一本书的每条记录：日期分隔 + 一段你的看法。"""
         parts = [f"## {date.today().isoformat()}"]
-        if note.get("one_liner"):
-            parts.append(f"> {note['one_liner']}")
         if note.get("summary"):
             parts.append(note["summary"])
-        if note.get("background"):
-            parts.append(f"**触发 / 背景**：{note['background']}")
-        if note.get("next_steps"):
-            parts.append("**可行的下一步**\n" + "\n".join(f"- [ ] {step}" for step in note["next_steps"]))
-        if note.get("challenge"):
-            parts.append(f"**盲点 / 反方**：{note['challenge']}")
         if related_titles:
-            parts.append("**关联**：" + " ".join(f"[[{title}]]" for title in related_titles))
+            parts.append(self._related_line(related_titles))
         return "\n\n".join(parts)
 
     # ---------- text normalizers ----------

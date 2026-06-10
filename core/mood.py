@@ -66,6 +66,27 @@ ALIAS_TO_KEY = sorted(
     key=lambda item: len(item[0]),
     reverse=True,
 )
+# Exact bare emotion words (e.g. "焦虑"/"开心") resolve without an LLM round-trip.
+EXACT_ALIAS_TO_KEY = {alias: emo["key"] for emo in EMOTIONS for alias in emo["aliases"] if alias}
+
+MOOD_CLASSIFY_SYSTEM = (
+    "你是「日迹」的心情归类器。判断用户这句话是不是在描述「他自己此刻/今天的心情感受」，"
+    "若是，归到最贴切的一种情绪；只返回 JSON："
+    '{"emotion":"开心|平静|焦虑|难过|恐惧|很难描述|自定义|非情绪","note":"可选备注"}。\n'
+    "可选情绪及含义：\n"
+    "- 开心：愉快、满足、兴奋、状态好，如「心情不错」「今天很顺」。\n"
+    "- 平静：平和、放松、踏实、安心，如「还行」「挺平稳的」。\n"
+    "- 焦虑：紧张、烦躁、有压力、不安、着急。\n"
+    "- 难过：伤心、低落、沮丧、委屈、郁闷、不开心、累。\n"
+    "- 恐惧：害怕、担心、发怵、惶恐。\n"
+    "- 很难描述：五味杂陈、麻木、说不清、矛盾复杂。\n"
+    "- 自定义：确实在说感受、但以上六类都不贴切时才用。\n"
+    "- 非情绪：这句话不是在说自己的心情——比如打招呼、道谢、命令、提问、客套、"
+    "陈述事实、闲聊（如「谢谢」「好的」「写得不错」「帮我查一下」「在吗」）。\n"
+    "归类规则：先判断是不是在说自己的心情，不是就用「非情绪」；是的话再抓主导情绪，"
+    "注意否定，如「不太开心」属难过、「不焦虑了」属平静。\n"
+    "note 只在用户提到具体原因/事件时填写（如「项目上线」），否则留空字符串。只返回 JSON。"
+)
 
 MOOD_MARKERS = ("情绪", "心情", "心境", "今天感觉", "今天心情", "感觉", "状态")
 MOOD_COMMANDS = (
@@ -144,11 +165,45 @@ def is_mood_prompt_request(text: str) -> bool:
     return raw in {re.sub(r"\s+", "", item) for item in MOOD_COMMANDS}
 
 
-def parse_mood(text: str) -> Optional[Dict]:
+def classify_mood(text: str, llm=None) -> Optional[Dict]:
+    """Ask the LLM to map free-text into one canonical emotion (+ optional note).
+
+    Returns None when no LLM is configured or the call fails, so callers can fall
+    back to the deterministic alias rules. Keeps mood entries consistent across
+    machines and handles phrasings the alias lists can't ("今天心情不错" → 开心).
+    """
+    if llm is None or not getattr(llm, "is_configured", False):
+        return None
+    try:
+        payload = llm.chat(
+            [
+                {"role": "system", "content": MOOD_CLASSIFY_SYSTEM},
+                {"role": "user", "content": text},
+            ],
+            json_mode=True,
+            temperature=0.0,
+            max_tokens=120,
+        )
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    emotion = payload.get("emotion")
+    # "非情绪" (or any out-of-set value) → not a mood statement, let caller fall through
+    if emotion not in EMOTION_BY_KEY:
+        return None
+    note = str(payload.get("note") or "").strip()
+    if emotion == CUSTOM_KEY and not note:
+        note = text.strip()
+    return {"emotion": emotion, "note": note}
+
+
+def parse_mood(text: str, llm=None) -> Optional[Dict]:
     """Return {"emotion", "note"} for a mood statement, else None.
 
-    Canonical emotions match by alias; a mood marker (情绪/心情…) with no canonical
-    match falls back to a free-text custom entry. Plain non-mood text returns None.
+    A bare emotion word resolves directly; otherwise, when an LLM is available it
+    classifies the phrasing into a canonical emotion. Falls back to alias matching
+    and a marker-based custom entry when offline. Plain non-mood text returns None.
     """
     raw = (text or "").strip()
     if not raw:
@@ -158,6 +213,15 @@ def parse_mood(text: str) -> Optional[Dict]:
     chosen = parse_mood_choice(raw)
     if chosen:
         return chosen
+    # Unambiguous single emotion word -> no LLM round-trip needed.
+    exact = EXACT_ALIAS_TO_KEY.get(raw)
+    if exact:
+        return {"emotion": exact, "note": ""}
+    # Let the model pick the closest canonical emotion for free-text phrasings.
+    classified = classify_mood(raw, llm)
+    if classified:
+        return classified
+    # Offline / LLM-unavailable fallback: alias match, then marker-based custom.
     key = _match_canonical(raw)
     if key:
         return {"emotion": key, "note": _extract_note(raw, key)}

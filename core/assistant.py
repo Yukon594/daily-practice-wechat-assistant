@@ -4,7 +4,13 @@ from datetime import date
 from typing import Optional, Tuple
 
 from config import Settings
-from core.exercise import format_exercise_confirmation, looks_like_exercise_text, parse_exercise
+from core.exercise import (
+    detect_activity,
+    format_exercise_confirmation,
+    looks_like_exercise_text,
+    looks_like_exercise_undo,
+    parse_exercise,
+)
 from core.focus import PomodoroSyncService, format_focus_duration
 from core.llm import DeepSeekClient, LLMError
 from core.mood import (
@@ -43,6 +49,11 @@ class AssistantEngine:
             reply = self.notes.handle_message(session_id, text)
             return self._maybe_append_mood_prompt(session_id, reply, self.notes.consume_just_saved())
 
+        if looks_like_exercise_undo(text):
+            undo_reply = self._handle_exercise_undo(session_id, text)
+            if undo_reply is not None:
+                return undo_reply
+
         captured = self._capture_mood_answer(session_id, text)
         if captured is not None:
             return captured
@@ -60,6 +71,21 @@ class AssistantEngine:
             return self._handle_query(text)
         return self._handle_chat(text)
 
+    def _handle_exercise_undo(self, session_id: str, text: str) -> Optional[str]:
+        # explicit「运动/跑步…」undoes the latest record; a bare「去除/删掉」only undoes
+        # one just logged (recency window), so it can't nuke a much older record
+        explicit = detect_activity(text) is not None or "运动" in text or "健身" in text
+        deleted = self.store.delete_last_exercise(within_seconds=None if explicit else 900)
+        if deleted:
+            # the just-recorded session triggered a mood prompt; undo cancels that ask too
+            self.store.clear_mood_pending(session_id)
+            detail = format_exercise_confirmation(deleted).replace("已记录运动：", "", 1)
+            return "已撤销刚才的运动记录：" + detail
+        if explicit:
+            return "最近没有可撤销的运动记录。"
+        # a bare「去除/删掉」with nothing recent isn't really an undo — let normal handling take over
+        return None
+
     def _handle_exercise(self, text: str) -> Tuple[str, bool]:
         try:
             session = parse_exercise(text, llm=self.llm)
@@ -73,7 +99,7 @@ class AssistantEngine:
         if is_mood_prompt_request(text):
             self.store.set_mood_prompted(session_id, date.today().isoformat(), pending=1)
             return MOOD_PICKER_PROMPT
-        parsed = parse_mood(text)
+        parsed = parse_mood(text, self.llm)
         if not parsed:
             return "想记录心情的话，可以说：开心 / 平静 / 焦虑 / 难过 / 恐惧 / 很难描述，或直接说说今天的感受。"
         self.store.add_mood(parsed["emotion"], parsed.get("note", ""), source="manual")
@@ -81,22 +107,26 @@ class AssistantEngine:
         return format_mood_confirmation(parsed["emotion"], parsed.get("note", ""))
 
     def _capture_mood_answer(self, session_id: str, text: str) -> Optional[str]:
-        """If we proactively asked for mood, capture this reply as the answer."""
+        """If we proactively asked for mood, capture this reply only when it's really a mood.
+
+        Anything that isn't a mood statement (greetings, thanks, a new command, an
+        exercise, a question…) declines the prompt and falls through to normal handling,
+        rather than being silently logged as a junk 自定义 mood.
+        """
         if not self.store.get_mood_state(session_id).get("pending"):
             return None
         if is_mood_prompt_request(text):
             return MOOD_PICKER_PROMPT
-        parsed = parse_mood(text)
+        # obvious non-mood actions: stop asking and let normal handling take over
+        if looks_like_exercise_text(text) or looks_like_exercise_undo(text):
+            self.store.clear_mood_pending(session_id)
+            return None
+        # parse_mood maps a real feeling to a canonical emotion (LLM-aware) and returns
+        # None for non-feelings (the classifier's 非情绪 escape / offline alias miss)
+        parsed = parse_mood(text, self.llm)
         if parsed is None:
-            # a short free-text feeling counts as 自定义; never hijack a real command
-            looks_command = looks_like_exercise_text(text) or any(
-                token in text for token in ("查", "统计", "多少", "看看", "本月", "这周", "本周", "同步", "?", "？")
-            )
-            if len(text) <= 14 and not looks_command:
-                parsed = {"emotion": "自定义", "note": text}
-            else:
-                self.store.clear_mood_pending(session_id)
-                return None
+            self.store.clear_mood_pending(session_id)
+            return None
         self.store.add_mood(parsed["emotion"], parsed.get("note", ""), source="prompted")
         self.store.clear_mood_pending(session_id)
         return format_mood_confirmation(parsed["emotion"], parsed.get("note", ""))

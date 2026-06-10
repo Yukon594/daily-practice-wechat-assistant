@@ -1188,6 +1188,84 @@
         transition: color 140ms ease;
       }
       .m-permalink:hover { color: var(--cinnabar-deep); }
+      .notes-head-right { display: flex; align-items: center; gap: 10px; }
+      .trash-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.4);
+        color: var(--ink-faint);
+        cursor: pointer;
+        transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+      }
+      .trash-btn svg { width: 17px; height: 17px; }
+      .trash-btn:hover { border-color: var(--cinnabar); color: var(--cinnabar-deep); background: rgba(192, 67, 42, 0.06); }
+      .m-foot { gap: 10px; align-items: center; }
+      .m-actions { margin-right: auto; display: flex; gap: 8px; }
+      .m-btn {
+        font-family: var(--display);
+        font-size: 0.78rem;
+        letter-spacing: 0.06em;
+        padding: 6px 14px;
+        border: 1px solid var(--rule);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        color: var(--ink-soft);
+        cursor: pointer;
+        transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+      }
+      .m-btn:hover { border-color: var(--celadon); color: var(--celadon); }
+      .m-btn.primary { background: var(--cinnabar); border-color: var(--cinnabar); color: #f4ead4; }
+      .m-btn.primary:hover { background: var(--cinnabar-deep); border-color: var(--cinnabar-deep); color: #f4ead4; }
+      .m-btn.danger:hover { border-color: var(--cinnabar); color: var(--cinnabar-deep); }
+      .edit-label {
+        display: block;
+        font-family: var(--display);
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        margin: 16px 0 6px;
+      }
+      .edit-input, .edit-area {
+        width: 100%;
+        font-family: var(--body);
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        padding: 10px 12px;
+        box-sizing: border-box;
+      }
+      .edit-input { font-size: 1.1rem; font-weight: 600; }
+      .edit-area { font-size: 0.96rem; line-height: 1.7; min-height: 240px; resize: vertical; }
+      .edit-input:focus, .edit-area:focus { outline: none; border-color: var(--cinnabar); background: #fff; }
+      .trash-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; }
+      .trash-tip {
+        font-family: var(--display);
+        font-style: italic;
+        color: var(--ink-faint);
+        font-size: 0.86rem;
+        margin: 6px 0 16px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .trash-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 2px;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .trash-item-main { flex: 1; min-width: 0; }
+      .trash-item-title { font-weight: 600; color: var(--ink); }
+      .trash-item-meta { font-size: 0.78rem; color: var(--ink-faint); margin-top: 3px; }
+      .trash-item .m-btn { padding: 5px 11px; font-size: 0.74rem; }
       .markdown { line-height: 1.78; font-size: 0.98rem; color: var(--ink); }
       .markdown h2 {
         font-family: var(--display);
@@ -1360,7 +1438,12 @@
           <article class="card notes-card reveal" id="notesCard" style="animation-delay: 0.22s">
             <div class="card-head">
               <h2>想法简报</h2>
-              <span class="kicker notes-count" id="notesCount">共 0 条</span>
+              <div class="notes-head-right">
+                <span class="kicker notes-count" id="notesCount">共 0 条</span>
+                <button class="trash-btn" id="trashOpen" title="废纸篓" aria-label="废纸篓">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><path d="M6 7l1 12.5A1.5 1.5 0 0 0 8.5 21h7a1.5 1.5 0 0 0 1.5-1.5L18 7"/></svg>
+                </button>
+              </div>
             </div>
             <div class="notes-toolbar">
               <div class="search-box">
@@ -1388,6 +1471,22 @@
         <span class="modal-seal">記</span>
         <button class="modal-close" id="modalClose" aria-label="关闭">×</button>
         <div id="modalBody"></div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="trashModal" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="废纸篓">
+        <span class="modal-seal">棄</span>
+        <button class="modal-close" id="trashClose" aria-label="关闭">×</button>
+        <div class="trash-head">
+          <div>
+            <p class="m-eyebrow">废纸篓</p>
+            <h3 class="m-title">已删除的想法</h3>
+          </div>
+          <button class="m-btn danger" id="trashEmpty">清空废纸篓</button>
+        </div>
+        <p class="trash-tip">删除的想法在这里保存 30 天，到期自动清除。</p>
+        <div id="trashList"></div>
       </div>
     </div>
 
@@ -2198,20 +2297,176 @@
         });
       }
 
-      async function openModal(noteId) {
-        const note = await getJSON(`/api/notes/${noteId}`);
+      function stripFrontmatter(content) {
+        return String(content || "").replace(/^---[\s\S]*?---\s*/, "");
+      }
+
+      function noteHeaderHTML(note) {
         const tags = (note.tags || []).map((tag) => `<span class="m-tag">#${escapeHtml(tag)}</span>`).join(" ");
-        document.getElementById("modalBody").innerHTML = `
+        return `
           <p class="m-eyebrow">${escapeHtml(note.category)}</p>
           <h3 class="m-title">${escapeHtml(note.title)}</h3>
-          <div class="m-meta"><span>收录于 ${note.created_at.replace("T", " ").slice(0, 16)}</span>${tags}</div>
+          <div class="m-meta"><span>收录于 ${note.created_at.replace("T", " ").slice(0, 16)}</span>${tags}</div>`;
+      }
+
+      function renderNoteView(note) {
+        document.getElementById("modalBody").innerHTML = `
+          ${noteHeaderHTML(note)}
           <div class="markdown">${renderMarkdown(note.content || "")}</div>
-          <div class="m-foot"><a class="m-permalink" href="/note/${note.id}" target="_blank" rel="noopener">独立页阅读 ↗</a></div>`;
+          <div class="m-foot">
+            <div class="m-actions">
+              <button class="m-btn" id="noteEdit">编辑</button>
+              <button class="m-btn danger" id="noteDelete">删除</button>
+            </div>
+            <a class="m-permalink" href="/note/${note.id}" target="_blank" rel="noopener">独立页阅读 ↗</a>
+          </div>`;
+        document.getElementById("noteEdit").addEventListener("click", () => renderNoteEdit(note));
+        document.getElementById("noteDelete").addEventListener("click", () => deleteNote(note));
+      }
+
+      function renderNoteEdit(note) {
+        document.getElementById("modalBody").innerHTML = `
+          <p class="m-eyebrow">${escapeHtml(note.category)} · 编辑</p>
+          <label class="edit-label" for="editTitle">标题</label>
+          <input class="edit-input" id="editTitle" type="text" />
+          <label class="edit-label" for="editBody">正文</label>
+          <textarea class="edit-area" id="editBody" spellcheck="false"></textarea>
+          <div class="m-foot">
+            <div class="m-actions"><button class="m-btn" id="editCancel">取消</button></div>
+            <button class="m-btn primary" id="editSave">保存</button>
+          </div>`;
+        document.getElementById("editTitle").value = note.title || "";
+        document.getElementById("editBody").value = stripFrontmatter(note.content);
+        document.getElementById("editCancel").addEventListener("click", () => renderNoteView(note));
+        document.getElementById("editSave").addEventListener("click", () => saveEdit(note));
+        document.getElementById("editTitle").focus();
+      }
+
+      async function saveEdit(note) {
+        const title = document.getElementById("editTitle").value.trim();
+        const body = document.getElementById("editBody").value;
+        if (!title) { document.getElementById("editTitle").focus(); return; }
+        const saveBtn = document.getElementById("editSave");
+        saveBtn.disabled = true;
+        saveBtn.textContent = "保存中…";
+        try {
+          const data = await postJSON(`/api/notes/${note.id}/edit`, { title, body });
+          renderNoteView(data.note);
+          await loadNotes();
+        } catch (error) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = "保存";
+          alert(error.message || String(error));
+        }
+      }
+
+      async function deleteNote(note) {
+        if (!confirm(`把「${note.title}」移到废纸篓？30 天内可恢复。`)) return;
+        try {
+          await postJSON(`/api/notes/${note.id}/delete`, {});
+          closeModal();
+          await loadNotes();
+          setDragHint("已移到废纸篓，30 天内可在废纸篓里恢复。");
+        } catch (error) {
+          alert(error.message || String(error));
+        }
+      }
+
+      async function openModal(noteId) {
+        const note = await getJSON(`/api/notes/${noteId}`);
+        renderNoteView(note);
         const overlay = document.getElementById("noteModal");
         overlay.classList.add("open");
         overlay.setAttribute("aria-hidden", "false");
         overlay.querySelector(".modal").scrollTop = 0;
         history.replaceState(null, "", `#note-${note.id}`);
+      }
+
+      async function openTrash() {
+        const overlay = document.getElementById("trashModal");
+        overlay.classList.add("open");
+        overlay.setAttribute("aria-hidden", "false");
+        overlay.querySelector(".modal").scrollTop = 0;
+        await renderTrash();
+      }
+
+      function closeTrash() {
+        const overlay = document.getElementById("trashModal");
+        overlay.classList.remove("open");
+        overlay.setAttribute("aria-hidden", "true");
+      }
+
+      async function renderTrash() {
+        const list = document.getElementById("trashList");
+        list.innerHTML = `<div class="empty-state">载入中…</div>`;
+        let data;
+        try {
+          data = await getJSON("/api/trash");
+        } catch (error) {
+          list.innerHTML = `<div class="empty-state">${escapeHtml(error.message || String(error))}</div>`;
+          return;
+        }
+        const notes = data.notes || [];
+        document.getElementById("trashEmpty").style.display = notes.length ? "" : "none";
+        if (!notes.length) {
+          list.innerHTML = `<div class="empty-state">废纸篓是空的。</div>`;
+          return;
+        }
+        list.innerHTML = "";
+        notes.forEach((note) => {
+          const row = document.createElement("div");
+          row.className = "trash-item";
+          const when = (note.deleted_at || "").replace("T", " ").slice(0, 16);
+          row.innerHTML = `
+            <div class="trash-item-main">
+              <div class="trash-item-title">${escapeHtml(note.title)}</div>
+              <div class="trash-item-meta">${escapeHtml(note.category)} · 删除于 ${when} · 剩 ${note.days_left} 天</div>
+            </div>
+            <button class="m-btn" data-act="restore">恢复</button>
+            <button class="m-btn danger" data-act="purge">彻底删除</button>`;
+          row.querySelector('[data-act="restore"]').addEventListener("click", async () => {
+            try {
+              await postJSON(`/api/notes/${note.id}/restore`, {});
+              await renderTrash();
+              await loadNotes();
+            } catch (error) {
+              alert(error.message || String(error));
+            }
+          });
+          row.querySelector('[data-act="purge"]').addEventListener("click", async () => {
+            if (!confirm(`彻底删除「${note.title}」？不可恢复。`)) return;
+            try {
+              await postJSON(`/api/notes/${note.id}/purge`, {});
+              await renderTrash();
+            } catch (error) {
+              alert(error.message || String(error));
+            }
+          });
+          list.appendChild(row);
+        });
+      }
+
+      async function emptyTrash() {
+        if (!confirm("清空废纸篓？里面的想法将被彻底删除，不可恢复。")) return;
+        try {
+          await postJSON("/api/trash/empty", {});
+          await renderTrash();
+        } catch (error) {
+          alert(error.message || String(error));
+        }
+      }
+
+      function setupTrash() {
+        const overlay = document.getElementById("trashModal");
+        document.getElementById("trashOpen").addEventListener("click", openTrash);
+        document.getElementById("trashClose").addEventListener("click", closeTrash);
+        document.getElementById("trashEmpty").addEventListener("click", emptyTrash);
+        overlay.addEventListener("click", (event) => {
+          if (event.target === overlay) closeTrash();
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && overlay.classList.contains("open")) closeTrash();
+        });
       }
 
       function closeModal() {
@@ -2361,6 +2616,7 @@
 
       setupNotesControls();
       setupModal();
+      setupTrash();
       setupMoodNoteModal();
       setupModeToggle();
       setupMoodControls();
