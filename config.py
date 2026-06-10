@@ -4,7 +4,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Iterable, List, Optional, Union
 
 ROOT_DIR = Path(__file__).resolve().parent
 DEFAULT_NOTE_CATEGORIES = ["产品灵感", "生活感悟", "工作", "学习", "其它"]
@@ -65,6 +65,16 @@ def _resolve_pomodoro_settings_path(raw_value: Optional[Union[str, Path]]) -> Pa
     return candidates[0]
 
 
+def _first_non_empty(candidates: Iterable[Optional[str]], default: str = "") -> str:
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        value = str(candidate).strip()
+        if value:
+            return value
+    return default
+
+
 def load_settings(
     config_path: Optional[Path] = None,
     data_dir_override: Optional[Union[str, Path]] = None,
@@ -79,17 +89,31 @@ def load_settings(
     data_dir = _resolve_data_dir(configured_data_dir)
     notes_dir = data_dir / "notes"
 
-    deepseek_api_key = os.getenv(
-        "DEEPSEEK_API_KEY",
-        config_data.get("deepseek_api_key", ""),
+    deepseek_api_key = _first_non_empty(
+        [
+            os.getenv("LLM_API_KEY"),
+            os.getenv("DEEPSEEK_API_KEY"),
+            config_data.get("llm_api_key"),
+            config_data.get("deepseek_api_key"),
+        ],
     )
-    deepseek_base_url = os.getenv(
-        "DEEPSEEK_BASE_URL",
-        config_data.get("deepseek_base_url", "https://api.deepseek.com"),
+    deepseek_base_url = _first_non_empty(
+        [
+            os.getenv("LLM_BASE_URL"),
+            os.getenv("DEEPSEEK_BASE_URL"),
+            config_data.get("llm_base_url"),
+            config_data.get("deepseek_base_url"),
+        ],
+        default="https://api.deepseek.com",
     )
-    deepseek_model = os.getenv(
-        "DEEPSEEK_MODEL",
-        config_data.get("deepseek_model", "deepseek-chat"),
+    deepseek_model = _first_non_empty(
+        [
+            os.getenv("LLM_MODEL"),
+            os.getenv("DEEPSEEK_MODEL"),
+            config_data.get("llm_model"),
+            config_data.get("deepseek_model"),
+        ],
+        default="deepseek-chat",
     )
 
     request_timeout = int(

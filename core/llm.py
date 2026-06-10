@@ -10,10 +10,12 @@ from config import Settings
 
 
 class LLMError(RuntimeError):
-    """Raised when the DeepSeek request fails."""
+    """Raised when the configured LLM request fails."""
 
 
-class DeepSeekClient:
+class LLMClient:
+    """Thin client for OpenAI-compatible chat completions APIs."""
+
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
@@ -29,7 +31,7 @@ class DeepSeekClient:
         max_tokens: int = 800,
     ) -> Any:
         if not self.is_configured:
-            raise LLMError("DeepSeek API key is missing. Fill config.json first.")
+            raise LLMError("LLM API key is missing. Fill config.json first.")
 
         payload: Dict[str, Any] = {
             "model": self.settings.deepseek_model,
@@ -63,7 +65,7 @@ class DeepSeekClient:
             except (requests.RequestException, KeyError, ValueError, json.JSONDecodeError) as exc:
                 last_error = exc
 
-        raise LLMError(f"DeepSeek request failed: {last_error}")
+        raise LLMError(f"LLM request failed: {last_error}")
 
     def _parse_json_content(self, content: str) -> Any:
         try:
@@ -80,3 +82,6 @@ class DeepSeekClient:
             return json.loads(object_match.group(1))
 
         raise json.JSONDecodeError("Unable to parse JSON from model output.", content, 0)
+
+
+DeepSeekClient = LLMClient
