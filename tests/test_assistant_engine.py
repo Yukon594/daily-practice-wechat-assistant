@@ -136,7 +136,7 @@ class AssistantEnginePivotTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             app_support = root / "Library" / "Application Support"
-            stale = app_support / "com.liuyuhang.stickerpomodoro.mac" / "settings.json"
+            stale = app_support / "com.stickerpomodoro.mac" / "settings.json"
             fresh = app_support / "com.stickerpomodoro.timer" / "settings.json"
             stale.parent.mkdir(parents=True, exist_ok=True)
             fresh.parent.mkdir(parents=True, exist_ok=True)

@@ -22,7 +22,7 @@ REFLECTION_MARKERS = [
 ]
 
 CLASSIFY_SYSTEM = (
-    "你是「日课」助手的意图分类器，判断用户这句话属于哪一类，只返回 JSON："
+    "你是「日迹」助手的意图分类器，判断用户这句话属于哪一类，只返回 JSON："
     '{"intent":"exercise|mood|note|query|chat"}。\n'
     "判据：\n"
     "- exercise：在记录一次运动，如「今天跑步5公里32分钟」「晚上练胸45分钟」。\n"

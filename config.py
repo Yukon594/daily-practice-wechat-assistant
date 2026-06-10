@@ -56,8 +56,8 @@ def _resolve_pomodoro_settings_path(raw_value: Optional[Union[str, Path]]) -> Pa
         return path
 
     candidates = [
-        Path.home() / "Library/Application Support/com.liuyuhang.stickerpomodoro.mac/settings.json",
-        Path.home() / "Library/Application Support/com.liuyuhang.stickerpomodoro/settings.json",
+        Path.home() / "Library/Application Support/com.stickerpomodoro.mac/settings.json",
+        Path.home() / "Library/Application Support/com.stickerpomodoro/settings.json",
     ]
     for candidate in candidates:
         if candidate.exists():

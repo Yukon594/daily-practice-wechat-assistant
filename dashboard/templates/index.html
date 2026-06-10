@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>日课 · 运动 · 专注 · 想法</title>
+    <title>日迹 · 运动 · 专注 · 情绪 · 想法</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -1263,16 +1263,16 @@
     <div class="shell">
       <header class="masthead reveal" style="animation-delay: 0.02s">
         <div class="masthead-top">
-          <span class="mt-left">私人日课 · Daily Practice</span>
+          <span class="mt-left">私人日迹 · Daily Practice</span>
           <span class="live-dot" id="syncDot"><i></i><span id="syncStatus">同步中…</span></span>
         </div>
         <div class="masthead-main">
           <span class="flank"></span>
-          <h1 class="wordmark">日课<span class="seal">課</span></h1>
+          <h1 class="wordmark">日迹<span class="seal">跡</span></h1>
           <span class="flank"></span>
         </div>
         <p class="dek">
-          <span class="dek-mark">The Daily Almanac</span>运动、专注、随手一念，把每天的身心轨迹收进同一张桌面。
+          <span class="dek-mark">The Daily Almanac</span>运动、专注、情绪与想法，把每天的身心轨迹收进同一张桌面。
         </p>
         <div class="meta-bar">
           <div class="meta-cell">
@@ -1324,9 +1324,9 @@
                 </div>
               </div>
               <div class="mode-toggle" id="modeToggle" aria-label="选择视图模式">
-                <button class="mode-btn active" data-mode="exercise" type="button">运动模式</button>
-                <button class="mode-btn" data-mode="focus" type="button">专注模式</button>
-                <button class="mode-btn" data-mode="mood" type="button">情绪模式</button>
+                <button class="mode-btn active" data-mode="exercise" type="button">运动记录</button>
+                <button class="mode-btn" data-mode="focus" type="button">专注记录</button>
+                <button class="mode-btn" data-mode="mood" type="button">情绪记录</button>
               </div>
             </div>
             <div class="rhythm-body">
@@ -1378,7 +1378,7 @@
 
       <footer class="figures reveal" style="animation-delay: 0.4s; border-bottom: none; margin-top: 40px;">
         <div class="figure" style="border-right: none; padding-left: 0;">
-          <div class="note" id="syncFoot">日课 · 运动 · 专注 · 想法 · 本地存档</div>
+          <div class="note" id="syncFoot">日迹 · 运动 · 专注 · 情绪 · 想法 · 本地存档</div>
         </div>
       </footer>
     </div>
@@ -1570,7 +1570,7 @@
 
         const pathText = sync.source_path ? sync.source_path.split("/").slice(-2).join("/") : "未配置路径";
         const lastSync = sync.last_synced_at ? `上次同步 ${sync.last_synced_at.replace("T", " ")}` : pathText;
-        document.getElementById("syncFoot").textContent = `日课 · 本地存档 · 手动刷新 · ${lastSync}`;
+        document.getElementById("syncFoot").textContent = `日迹 · 本地存档 · 手动刷新 · ${lastSync}`;
       }
 
       function renderFigures(data) {
