@@ -4,7 +4,7 @@ from typing import Optional
 
 from core.exercise import looks_like_exercise_text
 from core.llm import DeepSeekClient, LLMError
-from core.mood import looks_like_mood
+from core.mood import is_confident_mood, looks_like_mood
 
 INTENTS = {"exercise", "mood", "note", "query", "chat"}
 QUERY_KEYWORDS = [
@@ -26,12 +26,15 @@ CLASSIFY_SYSTEM = (
     '{"intent":"exercise|mood|note|query|chat"}。\n'
     "判据：\n"
     "- exercise：在记录一次运动，如「今天跑步5公里32分钟」「晚上练胸45分钟」。\n"
-    "- mood：在简短地说今天/此刻的心情或情绪，如「今天有点焦虑」「心情不错」「情绪 平静」。\n"
+    "- mood：在说自己此刻/今天的心情感受（哪怕是被某件事触发的），如「今天有点焦虑」"
+    "「心情不错」「情绪 平静」「想到那件事就有点恐惧」「一忙起来就烦」。\n"
     "- query：在查询运动/专注/想法统计，如「这周运动了几次」「这个月专注了多久」「看看最近想法」。\n"
-    "- note：较完整地展开一个想法、灵感、观点、感悟或读书笔记——「说自己的一段所思所想/观察」，"
-    "如「我突然觉得人和人靠重复的小事维系」「在读纳瓦尔宝典，财富是睡后收入」。\n"
+    "- note：在展开一个想法、点子、观点、观察或感悟——重点是「构想一个东西」或「分析一个道理」，"
+    "即使句中带情绪词，如「我想把情绪卡做成月历模式」「散步时想到，很多焦虑本质上是对失控的感觉」"
+    "「在读纳瓦尔宝典，财富是睡后收入」。\n"
     "- chat：仅当它是对助手的寒暄、操作指令或简短问答时，如「你好」「你能干嘛」「谢谢」「在吗」。\n"
-    "区分要点：一句话的情绪短述归 mood；展开的思考/观察归 note。只返回 JSON。"
+    "区分要点：句子在「说我现在的感受」→ mood；在「构想/分析某个东西或道理」→ note。"
+    "情绪词出现在被构想/分析的对象里（如「情绪卡」「焦虑的本质」）时归 note。只返回 JSON。"
 )
 
 
@@ -44,22 +47,17 @@ def classify_intent(text: str, llm: Optional[DeepSeekClient] = None) -> str:
     if not lowered:
         return "chat"
 
+    # high-confidence deterministic shortcuts
     if _looks_like_query(text):
         return "query"
-
     if looks_like_exercise_text(text):
         return "exercise"
-
-    if looks_like_mood(text):
+    if is_confident_mood(text):
         return "mood"
 
-    if any(keyword in lowered for keyword in NOTE_KEYWORDS):
-        return "note"
-
-    # catch reflective statements before falling back to the LLM / chat
-    if _looks_like_reflection(text):
-        return "note"
-
+    # ambiguous mood-vs-note-vs-chat: let the LLM arbitrate before any keyword shortcut,
+    # so a reflection/idea that mentions an emotion isn't stolen by mood, and a short
+    # event-triggered feeling isn't stolen by a NOTE keyword like 「想到」
     if llm and llm.is_configured:
         try:
             payload = llm.chat(
@@ -77,8 +75,14 @@ def classify_intent(text: str, llm: Optional[DeepSeekClient] = None) -> str:
         except LLMError:
             pass
 
-    # no LLM available: a longer first-person statement is more likely a note than chat
-    return "note" if _looks_like_reflection(text) else "chat"
+    # offline heuristics (no LLM available)
+    if looks_like_mood(text):
+        return "mood"
+    if any(keyword in lowered for keyword in NOTE_KEYWORDS):
+        return "note"
+    if _looks_like_reflection(text):
+        return "note"
+    return "chat"
 
 
 def _looks_like_query(text: str) -> bool:

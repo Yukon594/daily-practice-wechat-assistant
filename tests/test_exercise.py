@@ -3,7 +3,25 @@ from __future__ import annotations
 import unittest
 from unittest.mock import Mock
 
-from core.exercise import looks_like_exercise_undo, parse_exercise
+from datetime import date, timedelta
+
+from core.exercise import _resolve_ts, looks_like_exercise_undo, parse_exercise
+
+
+class ExerciseDateResolutionTest(unittest.TestCase):
+    def test_no_explicit_date_uses_relative_semantics(self) -> None:
+        # P1: never trust an LLM date the text doesn't justify
+        today = date.today()
+        self.assertEqual(_resolve_ts("2023-10-05", "骑车上下班来回一个钟头"), today.isoformat())
+        self.assertEqual(_resolve_ts("2025-04-09", "今天晨跑三十来分钟"), today.isoformat())
+        self.assertEqual(_resolve_ts("2030-01-01", "前天步行30分钟"),
+                         (today - timedelta(days=2)).isoformat())
+
+    def test_future_clamped_explicit_trusted(self) -> None:
+        today = date.today()
+        self.assertEqual(_resolve_ts("2099-01-01", "晚点去跑步"), today.isoformat())  # no date → today
+        three_ago = (today - timedelta(days=3)).isoformat()
+        self.assertEqual(_resolve_ts(three_ago, "3天前跑步5公里30分钟"), three_ago)  # explicit → trust
 
 
 class ExerciseUndoDetectionTest(unittest.TestCase):

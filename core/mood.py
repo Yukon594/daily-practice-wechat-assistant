@@ -81,10 +81,14 @@ MOOD_CLASSIFY_SYSTEM = (
     "- 恐惧：害怕、担心、发怵、惶恐。\n"
     "- 很难描述：五味杂陈、麻木、说不清、矛盾复杂。\n"
     "- 自定义：确实在说感受、但以上六类都不贴切时才用。\n"
-    "- 非情绪：这句话不是在说自己的心情——比如打招呼、道谢、命令、提问、客套、"
-    "陈述事实、闲聊（如「谢谢」「好的」「写得不错」「帮我查一下」「在吗」）。\n"
-    "归类规则：先判断是不是在说自己的心情，不是就用「非情绪」；是的话再抓主导情绪，"
-    "注意否定，如「不太开心」属难过、「不焦虑了」属平静。\n"
+    "- 非情绪：这句话不是在说「自己此刻的感受」——比如打招呼、道谢、命令、提问、客套、"
+    "评价别的东西、陈述事实、闲聊（如「谢谢」「好的」「写得不错」「帮我查一下」「在吗」），"
+    "或者是在展开一个想法/产品点子/观察分析（如「我想把情绪卡做成月历」「焦虑本质上是失控感」）。\n"
+    "归类规则：先判断这句话是不是在说「我自己现在的感受」。\n"
+    "- 由某件事/某个念头触发的当下感受**仍然是情绪**，如「想到那件事就有点恐惧」属恐惧、"
+    "「一忙起来就烦」属焦虑、「看到结果挺开心」属开心。\n"
+    "- 但如果重点是在「构想一个东西」或「分析一个道理」（即使句中带情绪词），用「非情绪」。\n"
+    "是情绪就抓主导情绪，注意否定，如「不太开心」属难过、「不焦虑了」属平静。\n"
     "note 只在用户提到具体原因/事件时填写（如「项目上线」），否则留空字符串。只返回 JSON。"
 )
 
@@ -229,6 +233,39 @@ def parse_mood(text: str, llm=None) -> Optional[Dict]:
         note = _strip_markers(raw)
         return {"emotion": CUSTOM_KEY, "note": note or raw}
     return None
+
+
+# markers that signal an idea/observation, not a feeling — a mood statement won't contain these
+_IDEA_MARKERS = (
+    "想把", "想做", "做成", "做个", "做一个", "弄成", "改成", "加个", "设计", "方案",
+    "功能", "卡片", "界面", "模式", "版本", "需求", "优化", "本质", "其实", "意识到",
+    "为什么", "怎么做", "应该", "可以做",
+)
+
+
+def is_confident_mood(text: str) -> bool:
+    """High-confidence mood shortcut for the router.
+
+    Only a command, a picker number, or a short statement whose subject *is* the feeling.
+    Ambiguous or longer text (a reflection / idea that merely mentions an emotion) is left
+    for the intent classifier so it isn't stolen by a keyword shortcut.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return False
+    if is_mood_prompt_request(raw):
+        return True
+    if parse_mood_choice(raw):
+        return True
+    if any(marker in raw for marker in _IDEA_MARKERS):
+        return False
+    if len(raw) <= 6 and _match_canonical(raw):
+        return True
+    if len(raw) <= 12 and raw[:2] in ("情绪", "心情") and _match_canonical(raw):
+        return True
+    if len(raw) <= 10 and raw[:2] in ("今天", "现在", "此刻") and _match_canonical(raw):
+        return True
+    return False
 
 
 def looks_like_mood(text: str) -> bool:

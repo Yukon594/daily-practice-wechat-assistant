@@ -16,7 +16,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from config import load_settings
 from core.assistant import AssistantEngine
-from core.mood import MOOD_PICKER_PROMPT, MOOD_PROMPT, looks_like_mood, parse_mood
+from core.mood import (
+    MOOD_PICKER_PROMPT,
+    MOOD_PROMPT,
+    is_confident_mood,
+    looks_like_mood,
+    parse_mood,
+)
 from core.router import classify_intent
 from core.store import Store
 
@@ -60,6 +66,16 @@ class MoodParsingTest(unittest.TestCase):
         # a fuller reflection stays a note, not a one-line mood
         self.assertEqual(classify_intent("我突然觉得专注靠环境而不是意志力", llm=None), "note")
         self.assertTrue(looks_like_mood("开心"))
+
+    def test_confident_mood_gating(self):
+        # high-confidence shortcuts
+        self.assertTrue(is_confident_mood("焦虑"))
+        self.assertTrue(is_confident_mood("今天有点焦虑"))
+        self.assertTrue(is_confident_mood("记录情绪"))
+        # an idea that merely mentions an emotion must NOT short-circuit to mood
+        self.assertFalse(is_confident_mood("我想把情绪卡做成月历模式"))
+        # a longer event-triggered feeling defers to the LLM classifier, not the shortcut
+        self.assertFalse(is_confident_mood("想到那件事就有点恐惧"))
 
 
 class MoodStoreTest(unittest.TestCase):

@@ -251,6 +251,23 @@ class TrashEditUndoTest(unittest.TestCase):
             self.assertTrue(service.has_active_session("s2"))  # still collecting
             self.assertIsNotNone(service.cancel_if_needed("s2", "跳过"))  # standalone -> cancels
 
+    def test_source_reliability_and_medium_neutral_label(self) -> None:
+        # P2: a 来源 note with a named source merges even if the model forgot the flag,
+        # and a podcast/article is NOT mislabelled 读书笔记
+        with tempfile.TemporaryDirectory() as tmpdir:
+            settings = self._build_settings(Path(tmpdir))
+            service = NotesService(Store(settings), settings)
+            n = service._normalize_note({
+                "type": "来源", "title": "某播客", "is_book_note": False,
+                "book": "某播客", "source_type": "播客", "summary": "我的看法", "category": "学习",
+            })
+            self.assertTrue(n["is_book_note"])
+            self.assertEqual(n["source_type"], "播客")
+            self.assertEqual(service._source_label("播客"), "播客笔记")
+            self.assertEqual(service._source_label("文章"), "文章摘记")
+            self.assertEqual(service._source_label("书"), "读书笔记")
+            self.assertEqual(service._source_label(""), "来源笔记")
+
 
 if __name__ == "__main__":
     unittest.main()

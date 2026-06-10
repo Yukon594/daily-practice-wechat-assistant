@@ -54,7 +54,7 @@ BUILD_SYSTEM = """\
 
 - **随想 / 其它**（感受、观察、情绪、随手的念头）：写成自然流畅的**第一人称段落**（summary，1~3 段），把触发点/背景顺手融进文字里，**不要分点、不要金句**。`title` 起一个精炼标题（≤14 字，点出这条随想的核心）。`one_liner / background / next_steps / lessons / challenge` 全部留空。
 
-- **来源**（来自某本书/文章/播客/课程）：is_book_note=true，`book` 填来源名称，`title` 也用该名称（便于同一来源并入同一条笔记）。`summary` 写成**一段「你对这个观点的看法/消化」**（不必引用原文）。`one_liner / background / next_steps / lessons / challenge` 留空。
+- **来源**（这条想法来自某个外部内容——书 / 文章 / 公众号 / 播客 / 课程 / 视频）：**只要能指出来源就一律 is_book_note=true（不只是书！）**。`book` 填来源名称、`title` 也用该名称（便于同一来源并入同一条笔记）；`source_type` 填媒介，取值之一：书 / 文章 / 公众号 / 播客 / 课程 / 视频。`summary` 写成**一段「你对这个观点的看法/消化」**（不必引用原文）。`one_liner / background / next_steps / lessons / challenge` 留空。
 
 - **行动**（要去做的事 / 计划 / 方案 / 功能 / 改进）：`one_liner` = 一句话点题；`summary` = 一小段，说清要解决什么问题、比现状好在哪；`next_steps` = 可执行的下一步清单；`challenge` = **仅当其中有一个"赌得很大"的关键假设值得质疑时**才给一个挑战性反问，否则留空。`background / lessons` 留空。
 
@@ -68,7 +68,7 @@ BUILD_SYSTEM = """\
 - `type`：必须只填这 5 个稳定值之一：行动 / 来源 / 随想 / 复盘 / 其它。
 
 输出 JSON（所有键都要在，空值用 "" 或 []）：
-{"type":"","title":"","is_book_note":false,"book":"","category":"","category_is_new":false,"tags":[],"one_liner":"","background":"","summary":"","next_steps":[],"lessons":[],"challenge":"","related_hints":[]}
+{"type":"","title":"","is_book_note":false,"book":"","source_type":"","category":"","category_is_new":false,"tags":[],"one_liner":"","background":"","summary":"","next_steps":[],"lessons":[],"challenge":"","related_hints":[]}
 """
 
 
@@ -207,25 +207,26 @@ class NotesService:
             note["category_is_new"] = forced_category not in self.settings.note_categories
         related = self._resolve_related(note.get("related_hints", []), note.get("title", ""))
 
-        # hook 2: same book -> append into one note instead of creating a new file
+        # hook 2: same source -> append into one note instead of creating a new file
         if note.get("is_book_note") and note.get("book"):
             book = self._norm_book(note["book"])
             note["title"] = book
             if not note.get("category"):
-                note["category"] = "读书"
+                note["category"] = "学习"
+            label = self._source_label(note.get("source_type", ""))
             entry = self._render_book_entry(note, related)
             existing = self.store.find_note_by_title(book)
             if existing:
                 path = self.store.append_to_note(existing["id"], entry, extra_tags=note.get("tags"))
                 self.store.clear_note_session(session_id)
                 return (
-                    f"已并入《{book}》读书笔记（追加了今天的内容）。\n"
+                    f"已并入《{book}》{label}（追加了今天的内容）。\n"
                     f"分类：{existing['category']}\n文件：{path}"
                 )
             note["markdown"] = self._book_frontmatter(note) + entry
             path = self.store.add_note(note)
             self.store.clear_note_session(session_id)
-            return f"已新建《{book}》读书笔记。\n分类：{note['category']}\n文件：{path}"
+            return f"已新建《{book}》{label}。\n分类：{note['category']}\n文件：{path}"
 
         note["markdown"] = self._render_markdown(note, related)
         path = self.store.add_note(note)
@@ -318,11 +319,17 @@ class NotesService:
         elif category not in self.settings.note_categories:
             category_is_new = True
 
+        # reliability net: a 来源 note with a named source is a merge candidate even if the
+        # model forgot the flag (fixes source notes leaking out as ordinary notes)
+        book = s("book")
+        is_book_note = bool(payload.get("is_book_note")) or (note_type == TYPE_SOURCE and bool(book))
+
         return {
-            "type": TYPE_SOURCE if bool(payload.get("is_book_note")) else note_type,
+            "type": TYPE_SOURCE if is_book_note else note_type,
             "title": title,
-            "is_book_note": bool(payload.get("is_book_note")),
-            "book": s("book"),
+            "is_book_note": is_book_note,
+            "book": book,
+            "source_type": s("source_type"),
             "category": category,
             "category_is_new": category_is_new,
             "tags": lst("tags")[:4],
@@ -344,6 +351,7 @@ class NotesService:
             "title": title,
             "is_book_note": False,
             "book": "",
+            "source_type": "",
             "category": self._classify_category(" ".join(user_messages)),
             "category_is_new": False,
             "tags": self._extract_tags(" ".join(user_messages))[:4],
@@ -509,8 +517,20 @@ class NotesService:
             lines += ["## 关联", self._related_line(related_titles), ""]
         return lines
 
+    _SOURCE_LABELS = {
+        "书": "读书笔记", "书籍": "读书笔记", "图书": "读书笔记",
+        "文章": "文章摘记", "博客": "文章摘记", "公众号": "文章摘记",
+        "播客": "播客笔记", "课程": "课程笔记", "视频": "视频笔记",
+    }
+
+    @classmethod
+    def _source_label(cls, source_type: str) -> str:
+        """Medium-neutral label so a podcast/article isn't mislabelled 读书笔记."""
+        return cls._SOURCE_LABELS.get((source_type or "").strip(), "来源笔记")
+
     def _book_frontmatter(self, note: Dict) -> str:
         tags = ", ".join(note.get("tags", []))
+        label = self._source_label(note.get("source_type", ""))
         return (
             "---\n"
             f"title: {note['title']}\n"
@@ -519,7 +539,7 @@ class NotesService:
             f"type: {note.get('type') or TYPE_SOURCE}\n"
             f"created: {date.today().isoformat()}\n"
             "---\n\n"
-            f"# 《{note['title']}》读书笔记\n\n"
+            f"# 《{note['title']}》{label}\n\n"
         )
 
     def _render_book_entry(self, note: Dict, related_titles: List[str]) -> str:

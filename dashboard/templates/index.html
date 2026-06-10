@@ -2301,6 +2301,11 @@
         return String(content || "").replace(/^---[\s\S]*?---\s*/, "");
       }
 
+      function noteBodyForEdit(content) {
+        // drop frontmatter AND the leading `# 标题` so the title is edited only in its field
+        return stripFrontmatter(content).replace(/^\s*#\s+.*(\r?\n)+/, "");
+      }
+
       function noteHeaderHTML(note) {
         const tags = (note.tags || []).map((tag) => `<span class="m-tag">#${escapeHtml(tag)}</span>`).join(" ");
         return `
@@ -2336,7 +2341,7 @@
             <button class="m-btn primary" id="editSave">保存</button>
           </div>`;
         document.getElementById("editTitle").value = note.title || "";
-        document.getElementById("editBody").value = stripFrontmatter(note.content);
+        document.getElementById("editBody").value = noteBodyForEdit(note.content);
         document.getElementById("editCancel").addEventListener("click", () => renderNoteView(note));
         document.getElementById("editSave").addEventListener("click", () => saveEdit(note));
         document.getElementById("editTitle").focus();
@@ -2550,7 +2555,9 @@
       }
 
       function renderMarkdown(src) {
-        const lines = src.replace(/^---[\s\S]*?---\s*/, "").split("\n");
+        // strip frontmatter, then a leading `# 标题` (shown separately as the modal H3)
+        const body = src.replace(/^---[\s\S]*?---\s*/, "").replace(/^\s*#\s+.*(\r?\n)+/, "");
+        const lines = body.split("\n");
         let html = "";
         let inList = false;
         const closeList = () => {

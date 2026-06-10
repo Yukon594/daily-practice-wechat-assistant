@@ -172,11 +172,51 @@ def _parse_calories(text: str) -> Optional[int]:
 
 def _parse_relative_date(text: str) -> date:
     today = date.today()
+    if "大前天" in text:
+        return today - timedelta(days=3)
     if "前天" in text:
         return today - timedelta(days=2)
     if "昨天" in text:
         return today - timedelta(days=1)
     return today
+
+
+# Date expressions the rule parser can't resolve on its own (so the LLM's date may be
+# trusted). Deliberately EXCLUDES 今天/昨天/前天/大前天 — those are handled deterministically.
+_EXPLICIT_DATE_RE = re.compile(
+    r"(\d{4}\s*[-/年]\s*\d{1,2}"          # 2026-06-01 / 2026年6月
+    r"|\d{1,2}\s*月\s*\d{1,2}"            # 6月1日
+    r"|\d{1,2}\s*[日号]"                   # 5日 / 5号
+    r"|\d+\s*天前"                          # 3天前
+    r"|上+\s*(?:周|个?星期|礼拜)"          # 上周 / 上上周 / 上个星期
+    r"|这\s*周|本\s*周"                     # 这周 / 本周
+    r"|周[一二三四五六日天]|星期[一二三四五六日天]|礼拜[一二三四五六日天])"
+)
+
+
+def _resolve_ts(llm_ts: str, raw_text: str) -> str:
+    """Resolve a workout date safely: never trust an LLM date the text doesn't justify.
+
+    If the text carries no explicit calendar date, the date comes from the rule parser
+    (今天/昨天/前天 → today/-1/-2). Only an explicit expression (6月1日, 3天前, 上周三…)
+    lets the LLM's ISO date through, and future dates are clamped to today.
+    """
+    today = date.today()
+    rule_dt = _parse_relative_date(raw_text)
+    ts = (llm_ts or "").strip()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", ts):
+        return rule_dt.isoformat()
+    if not _EXPLICIT_DATE_RE.search(raw_text or ""):
+        return rule_dt.isoformat()
+    try:
+        parsed = date.fromisoformat(ts)
+    except ValueError:
+        return rule_dt.isoformat()
+    if parsed > today:                       # a finished workout can't be in the future
+        return today.isoformat()
+    if parsed < today - timedelta(days=730) and not re.search(r"\d{4}", raw_text):
+        return rule_dt.isoformat()           # absurdly old with no explicit year → distrust
+    return ts
 
 
 def _normalize_session(payload: Dict, raw_text: str) -> Optional[Dict]:
@@ -187,9 +227,7 @@ def _normalize_session(payload: Dict, raw_text: str) -> Optional[Dict]:
     if not activity:
         return None
 
-    ts = str(payload.get("ts", "")).strip() or _parse_relative_date(raw_text).isoformat()
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", ts):
-        ts = _parse_relative_date(raw_text).isoformat()
+    ts = _resolve_ts(str(payload.get("ts", "")), raw_text)
 
     duration_minutes = _coerce_minutes(payload.get("duration_minutes"))
     distance_km = _coerce_distance(payload.get("distance_km"))
