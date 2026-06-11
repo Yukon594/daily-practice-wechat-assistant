@@ -70,7 +70,8 @@ class ExerciseParsingTest(unittest.TestCase):
 
         self.assertEqual(session["activity"], "力量训练")
         self.assertEqual(session["duration_minutes"], 30)
-        self.assertEqual(session["ts"], "2026-06-10")
+        # 「今天」has no explicit calendar date -> resolve to today, NOT the LLM's invented date
+        self.assertEqual(session["ts"], date.today().isoformat())
         self.assertEqual(session["source"], "manual")
         llm.chat.assert_called_once()
 

@@ -178,6 +178,23 @@ class Store:
             conn.execute("DELETE FROM exercise_sessions WHERE id = ?", (row["id"],))
         return dict(row)
 
+    @staticmethod
+    def _within(created_at: Optional[str], within_seconds: Optional[int]) -> bool:
+        if within_seconds is None:
+            return True
+        try:
+            age = (datetime.now() - datetime.fromisoformat(created_at)).total_seconds()
+        except (TypeError, ValueError):
+            return True
+        return age <= within_seconds
+
+    def last_exercise_ts(self) -> Optional[str]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT created_at FROM exercise_sessions ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        return row["created_at"] if row else None
+
     def get_exercise_month_summary(self, target: Optional[date] = None) -> Dict:
         start, end = self._month_bounds(target)
         with self._connect() as conn:
@@ -1049,6 +1066,34 @@ class Store:
             result.append(item)
         return result
 
+    def category_examples(self, limit_per: int = 3) -> Dict[str, List[str]]:
+        """Up to N recent note titles per (live) category — fed to the classify prompt
+        as real examples of what the user files where."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT category, title FROM notes WHERE deleted_at IS NULL ORDER BY id DESC"
+            ).fetchall()
+        out: Dict[str, List[str]] = {}
+        for row in rows:
+            bucket = out.setdefault(row["category"], [])
+            if len(bucket) < limit_per:
+                bucket.append(row["title"])
+        return out
+
+    def recategorize_last_note(self, category: str) -> Optional[Dict]:
+        """Chat-side 'change category' for the most recently captured thought."""
+        category = str(category or "").strip()
+        if not category:
+            return None
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT id, title FROM notes WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        if not row:
+            return None
+        self.update_note_category(row["id"], category)
+        return dict(row)
+
     def get_note_categories(self) -> List[Dict]:
         with self._connect() as conn:
             rows = conn.execute(
@@ -1305,6 +1350,25 @@ class Store:
         return path
 
     # ---------- trash bin (soft delete, 30-day retention) ----------
+    def last_note_ts(self) -> Optional[str]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT created_at FROM notes WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        return row["created_at"] if row else None
+
+    def delete_last_note(self, within_seconds: Optional[int] = None) -> Optional[Dict]:
+        """Chat-side undo for a just-captured thought: soft-delete the most recent live
+        note (into the trash, recoverable). Returns {id,title,created_at} or None."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT id, title, created_at FROM notes WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        if not row or not self._within(row["created_at"], within_seconds):
+            return None
+        self.trash_note(row["id"])
+        return dict(row)
+
     def trash_note(self, note_id: int) -> None:
         trash_dir = self.settings.notes_dir / ".trash"
         trash_dir.mkdir(parents=True, exist_ok=True)

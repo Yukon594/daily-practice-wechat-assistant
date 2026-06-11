@@ -1205,6 +1205,12 @@
       }
       .trash-btn svg { width: 17px; height: 17px; }
       .trash-btn:hover { border-color: var(--cinnabar); color: var(--cinnabar-deep); background: rgba(192, 67, 42, 0.06); }
+      .trash-btn.drop-active {
+        border-color: var(--cinnabar);
+        color: var(--cinnabar-deep);
+        background: rgba(192, 67, 42, 0.16);
+        transform: scale(1.12);
+      }
       .m-foot { gap: 10px; align-items: center; }
       .m-actions { margin-right: auto; display: flex; gap: 8px; }
       .m-btn {
@@ -2303,7 +2309,7 @@
 
       function noteBodyForEdit(content) {
         // drop frontmatter AND the leading `# 标题` so the title is edited only in its field
-        return stripFrontmatter(content).replace(/^\s*#\s+.*(\r?\n)+/, "");
+        return stripFrontmatter(content).replace(/^\s*#{1,6}\s+.*(\r?\n)+/, "");
       }
 
       function noteHeaderHTML(note) {
@@ -2463,7 +2469,8 @@
 
       function setupTrash() {
         const overlay = document.getElementById("trashModal");
-        document.getElementById("trashOpen").addEventListener("click", openTrash);
+        const trashBtn = document.getElementById("trashOpen");
+        trashBtn.addEventListener("click", openTrash);
         document.getElementById("trashClose").addEventListener("click", closeTrash);
         document.getElementById("trashEmpty").addEventListener("click", emptyTrash);
         overlay.addEventListener("click", (event) => {
@@ -2471,6 +2478,35 @@
         });
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape" && overlay.classList.contains("open")) closeTrash();
+        });
+
+        // drag a note onto the trash icon to delete it (recoverable for 30 days)
+        trashBtn.addEventListener("dragover", (event) => {
+          if (!state.draggingNoteId) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+        });
+        trashBtn.addEventListener("dragenter", () => {
+          if (state.draggingNoteId) trashBtn.classList.add("drop-active");
+        });
+        trashBtn.addEventListener("dragleave", () => trashBtn.classList.remove("drop-active"));
+        trashBtn.addEventListener("drop", async (event) => {
+          if (!state.draggingNoteId) return;
+          event.preventDefault();
+          trashBtn.classList.remove("drop-active");
+          const id = state.draggingNoteId;
+          const title = state.draggingNoteTitle;
+          try {
+            await postJSON(`/api/notes/${id}/delete`, {});
+            await loadNotes();
+            setDragHint(`已把「${title}」移到废纸篓，30 天内可在废纸篓里恢复。`);
+          } catch (error) {
+            setDragHint(error.message || String(error), true);
+          } finally {
+            state.draggingNoteId = null;
+            state.draggingNoteTitle = "";
+            document.querySelectorAll(".note-item").forEach((el) => el.classList.remove("dragging"));
+          }
         });
       }
 
@@ -2556,7 +2592,7 @@
 
       function renderMarkdown(src) {
         // strip frontmatter, then a leading `# 标题` (shown separately as the modal H3)
-        const body = src.replace(/^---[\s\S]*?---\s*/, "").replace(/^\s*#\s+.*(\r?\n)+/, "");
+        const body = src.replace(/^---[\s\S]*?---\s*/, "").replace(/^\s*#{1,6}\s+.*(\r?\n)+/, "");
         const lines = body.split("\n");
         let html = "";
         let inList = false;

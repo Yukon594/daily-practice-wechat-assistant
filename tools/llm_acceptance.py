@@ -132,31 +132,21 @@ def run_exercise():
 
 # --------------------------------------------------------------- note building
 def run_note_build():
-    print(f"\n{'='*70}\nD) NOTE _build_note — type-specific structure\n{'='*70}")
+    print(f"\n{'='*70}\nD) NOTE capture — title/category/tags + verbatim body\n{'='*70}")
     svc = service()
-
-    def build(text):
-        return svc._build_note([{"role": "user", "content": text}])
-
-    # reflection → prose summary, no checklist
-    n = build("今天走在路上突然觉得，和人的关系其实是靠一件件小事一点点攒出来的")
-    record("note", f"随想 type={n['type']}", n["type"] == "随想" and bool(n["summary"]) and not n["next_steps"] and not n["lessons"],
-           f"summary={bool(n['summary'])} steps={n['next_steps']} lessons={n['lessons']}")
-
-    # action → has next_steps
-    n = build("我想给看板加一个周对比功能，现在只能看月度，想横向比较每周的专注趋势")
-    record("note", f"行动 type={n['type']}", n["type"] == "行动" and bool(n["next_steps"]),
-           f"steps={n['next_steps']}")
-
-    # review → lessons or next_steps present
-    n = build("复盘一下这次上线，因为配置没同步回滚了一次，挺折腾的")
-    record("note", f"复盘 type={n['type']}", n["type"] == "复盘" and (bool(n["lessons"]) or bool(n["next_steps"])),
-           f"lessons={n['lessons']} steps={n['next_steps']}")
-
-    # source → book note
-    n = build("在读《纳瓦尔宝典》，觉得『财富是睡后收入』这个点很戳我")
-    record("note", f"来源 is_book={n['is_book_note']} book={n['book']!r}",
-           bool(n["is_book_note"]) and "纳瓦尔" in (n["book"] or ""), f"type={n['type']}")
+    cases = [
+        "今天走在路上突然觉得，和人的关系其实是靠一件件小事一点点攒出来的",
+        "我想给看板加一个周对比功能，现在只能看月度，想横向比较每周的专注趋势",
+        "在读《纳瓦尔宝典》，觉得『财富是睡后收入』这个点很戳我",
+    ]
+    for text in cases:
+        try:
+            meta = svc._classify(text)
+            ok = bool(meta["title"]) and bool(meta["category"]) and bool(meta["tags"])
+            record("note", f"{text[:16]!r} → {meta['title']!r} / {meta['category']} / {meta['tags']}", ok, "")
+        except Exception as e:  # noqa
+            record("note", f"{text[:16]!r}", False, f"ERROR {e}")
+        time.sleep(0.2)
 
 
 # ------------------------------------------------- end-to-end footgun + undo
@@ -187,12 +177,14 @@ def run_flows():
            f"left={left} mood={m} reply={r[:20]!r}")
 
     # 4) note session: legit content containing a cancel word keeps collecting
+    # 4) one-shot capture then undo the thought
     e = engine()
-    e.handle_message("我想记录一个产品点子", "s")
-    opened = e.notes.has_active_session("s")
-    e.handle_message("我打算先跳过登录这一块，直接做核心流程", "s")
-    record("flow", "note: legit '跳过…' keeps session", opened and e.notes.has_active_session("s"),
-           f"opened={opened} still_active={e.notes.has_active_session('s')}")
+    e.handle_message("随手记一个想法：试着每天先写三件最重要的事", "s")
+    saved = len(e.store.list_notes())
+    e.handle_message("撤销刚才的想法", "s")
+    record("flow", "note capture→undo (to trash)",
+           saved == 1 and len(e.store.list_notes()) == 0 and len(e.store.list_trashed_notes()) == 1,
+           f"saved={saved} now={len(e.store.list_notes())} trash={len(e.store.list_trashed_notes())}")
 
 
 def run_dates():
@@ -222,34 +214,50 @@ def run_routing():
         ("想到那件事就有点恐惧", "mood"),
         ("一忙起来就特别烦", "mood"),
         ("今天心情不错", "mood"),
+        # the reported misroute: a meta sentence with 「总结」 must NOT become a stats query
+        # (archiving it as a product idea is acceptable; the bug was returning 运动汇总)
+        ("我现在想把这个助手做成只记录和分类，因为对话延迟高、提示词难写，不如聊完总结再发来归档", "note"),
+        ("随手记一个想法：把番茄钟数据同步到看板会很有用", "note"),
+        ("这周运动了几次", "query"),
+        ("这个月专注了多久", "query"),
     ]
     for text, exp in cases:
         try:
             got = classify_intent(text, LLM)
-            record("route", f"{text!r:>30} → {got}", got == exp, f"expect {exp}")
+            record("route", f"{text[:24]!r:>26} → {got}", got == exp, f"expect {exp}")
         except Exception as e:  # noqa
             record("route", f"{text!r}", False, f"ERROR {e}")
         time.sleep(0.2)
 
 
-def run_source():
-    print(f"\n{'='*70}\nH) SOURCE notes — reliability + medium-neutral (book/podcast/article/course)\n{'='*70}")
+def run_interaction():
+    print(f"\n{'='*70}\nI) CAPTURE interaction — directive / own-title / new-category / companion mood\n{'='*70}")
+    # directive forces category + strips it from the body
     svc = service()
-    cases = [
-        ("在读《纳瓦尔宝典》，财富是睡后收入这点很认同", "书"),
-        ("听了一期播客《纵横四海》聊产品取舍，挺有启发", "播客"),
-        ("看了篇公众号文章讲注意力管理，要给深度工作留整块时间", "文章"),
-        ("上了门讲谈判的课程，BATNA 这个概念很有用", "课程"),
-    ]
-    for text, medium in cases:
-        try:
-            n = svc._build_note([{"role": "user", "content": text}])
-            ok = bool(n["is_book_note"]) and bool(n["book"])
-            record("source", f"{text[:20]!r} is_book={n['is_book_note']} src={n.get('source_type')!r}",
-                   ok, f"book={n['book']!r}")
-        except Exception as e:  # noqa
-            record("source", f"{text[:20]!r}", False, f"ERROR {e}")
-        time.sleep(0.2)
+    svc.capture("记录到AI碎碎念：对话是最慢最脆的一块，不如聊完总结再发来归档")
+    n = svc.store.list_notes()[0]
+    body = svc.store.get_note_by_id(n["id"])["content"]
+    record("interact", f"directive → 分类={n['category']}",
+           n["category"] == "AI碎碎念" and "记录到AI碎碎念" not in body, "body stripped")
+
+    # own title is used verbatim
+    svc = service()
+    svc.capture("# 看板周对比功能\n现在只能看月度，想横向比较每周趋势")
+    n = svc.store.list_notes()[0]
+    record("interact", f"own-title → {n['title']!r}", n["title"] == "看板周对比功能", "")
+
+    # a clearly-new theme can mint a new category (not forced into 其它)
+    svc = service()
+    meta = svc._classify("研究了一下家里阳台种香草，薄荷和迷迭香很好养")
+    record("interact", f"new-category → {meta['category']} (new={meta['category_is_new']})",
+           meta["category"] != "其它", f"cat={meta['category']}", soft=(meta["category"] == "其它"))
+
+    # exercise + a non-alias mood tail -> both logged via the LLM
+    e = engine()
+    e.handle_message("今天跑步五公里用了半小时，好累", "k")
+    m = e.store.get_today_mood()
+    record("interact", "exercise + '好累' → mood logged",
+           m is not None, f"mood={m and m['emotion']}")
 
 
 def summary():
@@ -283,6 +291,6 @@ if __name__ == "__main__":
     run_flows()
     run_dates()
     run_routing()
-    run_source()
+    run_interaction()
     summary()
     print(f"\n  elapsed {time.time()-t0:.1f}s")

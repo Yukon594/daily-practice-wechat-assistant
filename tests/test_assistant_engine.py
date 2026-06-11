@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from config import Settings
 from core.assistant import AssistantEngine
+from core.mood import MOOD_PROMPT
 
 
 class AssistantEnginePivotTest(unittest.TestCase):
@@ -207,6 +208,40 @@ class AssistantEnginePivotTest(unittest.TestCase):
             # but a real emotion word is still captured
             engine.handle_message("焦虑", session_id="m1")
             self.assertEqual(engine.store.get_today_mood()["emotion"], "焦虑")
+
+    def test_exercise_with_mood_logs_both(self) -> None:
+        # 运动+心情可叠加
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            engine = AssistantEngine(self._build_settings(root, root / "missing-settings.json"))
+            reply = engine.handle_message("今天健身了三十分钟，开心", session_id="c1")
+            self.assertIn("已记录运动", reply)
+            self.assertIn("顺手记下心情：开心", reply)
+            self.assertEqual(engine.store.get_today_mood()["emotion"], "开心")
+            self.assertNotIn(MOOD_PROMPT, reply)  # mood already logged -> no extra ask
+
+    def test_thought_mentioning_exercise_is_not_logged_as_exercise(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            engine = AssistantEngine(self._build_settings(root, root / "missing-settings.json"))
+            engine.handle_message("记一个想法：跑步时想到要做个番茄同步功能", session_id="t1")
+            self.assertEqual(len(engine.store.list_recent_exercise_sessions()), 0)
+            self.assertEqual(len(engine.store.list_notes()), 1)
+
+    def test_recategorize_last_note_via_chat(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            engine = AssistantEngine(self._build_settings(root, root / "missing-settings.json"))
+            engine.handle_message("记一个想法：试试每天写三件事", session_id="r1")
+            reply = engine.handle_message("改到生活感悟", session_id="r1")
+            self.assertIn("改到「生活感悟」", reply)
+            self.assertEqual(engine.store.list_notes()[0]["category"], "生活感悟")
+
+    def test_recategorize_with_no_note_is_friendly(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            engine = AssistantEngine(self._build_settings(root, root / "missing-settings.json"))
+            self.assertIn("没有可改分类", engine.handle_message("改到工作", session_id="r2"))
 
 
 if __name__ == "__main__":

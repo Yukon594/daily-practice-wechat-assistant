@@ -48,10 +48,12 @@ def classify_intent(text: str, llm: Optional[DeepSeekClient] = None) -> str:
         return "chat"
 
     # high-confidence deterministic shortcuts
-    if _looks_like_query(text):
-        return "query"
     if looks_like_exercise_text(text):
         return "exercise"
+    if _looks_like_capture(text):  # explicit「记一个想法 / 想法：…」beats a stats query
+        return "note"
+    if _looks_like_query(text):
+        return "query"
     if is_confident_mood(text):
         return "mood"
 
@@ -85,13 +87,28 @@ def classify_intent(text: str, llm: Optional[DeepSeekClient] = None) -> str:
     return "chat"
 
 
+_QUERY_DOMAIN = ("运动", "跑步", "骑行", "健身", "专注", "番茄", "番茄钟", "森林", "想法", "笔记")
+_QUERY_VERBS = ("多少", "统计", "查询", "看看", "汇总", "总结", "合计", "几次", "多久", "几个", "同步", "汇报")
+_QUERY_PERIODS = ("今天", "本周", "这周", "本月", "这个月", "最近", "这段时间")
+
+
+CAPTURE_MARKERS = (
+    "记一个想法", "记个想法", "记一下想法", "记下来", "记下", "随手记", "记录一下",
+    "帮我记", "记一下", "想法：", "想法:", "笔记：", "笔记:", "灵感：", "灵感:",
+)
+
+
+def _looks_like_capture(text: str) -> bool:
+    return any(marker in text for marker in CAPTURE_MARKERS)
+
+
 def _looks_like_query(text: str) -> bool:
-    if any(token in text for token in ("多少", "统计", "看看", "查询", "同步", "汇总", "总结", "合计")):
-        return True
-    domain_words = ("运动", "跑步", "骑行", "健身", "专注", "番茄", "番茄钟", "森林", "想法", "笔记")
-    period_words = ("今天", "本周", "这周", "本月", "这个月", "最近")
-    return (
-        any(domain in text for domain in domain_words)
-        and any(period in text for period in period_words)
-        and not looks_like_exercise_text(text)
-    )
+    # a query must be ABOUT a tracked domain AND ask/scope it, and is typically short —
+    # so a long pasted thought that merely contains 「总结/同步」isn't misread as a query
+    if looks_like_exercise_text(text):
+        return False
+    if len(text.strip()) > 16:
+        return False
+    if not any(domain in text for domain in _QUERY_DOMAIN):
+        return False
+    return any(v in text for v in _QUERY_VERBS) or any(p in text for p in _QUERY_PERIODS)

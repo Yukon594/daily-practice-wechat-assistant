@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date
 from typing import Optional, Tuple
 
@@ -16,12 +17,17 @@ from core.llm import DeepSeekClient, LLMError
 from core.mood import (
     MOOD_PICKER_PROMPT,
     MOOD_PROMPT,
+    _match_canonical,
+    classify_mood,
     format_mood_confirmation,
     is_mood_prompt_request,
     parse_mood,
 )
 from core.notes import NotesService
 from core.router import classify_intent
+
+# a bare 「改到X / 挪到X / 改成X分类」 (no body) -> re-categorize the most recent note
+_RECAT_RE = re.compile(r"^(?:改到|挪到|换到|改分类到|归类到|放到)\s*(?P<cat>[^\s：:，,。/]{1,8})(?:\s*分类)?\s*$")
 from core.store import Store
 
 EXERCISE_ALIASES = ("运动", "跑步", "骑行", "健身", "游泳", "步行", "瑜伽", "羽毛球", "篮球", "足球")
@@ -41,18 +47,13 @@ class AssistantEngine:
         if not text:
             return "你可以发我一条运动记录、一个想法、一句心情，或者问我这周运动和专注情况。"
 
-        cancelled = self.notes.cancel_if_needed(session_id, text)
-        if cancelled:
-            return cancelled
+        undo_reply = self._handle_undo(session_id, text)
+        if undo_reply is not None:
+            return undo_reply
 
-        if self.notes.has_active_session(session_id):
-            reply = self.notes.handle_message(session_id, text)
-            return self._maybe_append_mood_prompt(session_id, reply, self.notes.consume_just_saved())
-
-        if looks_like_exercise_undo(text):
-            undo_reply = self._handle_exercise_undo(session_id, text)
-            if undo_reply is not None:
-                return undo_reply
+        recat = self._handle_recategorize(text)
+        if recat is not None:
+            return recat
 
         captured = self._capture_mood_answer(session_id, text)
         if captured is not None:
@@ -65,26 +66,57 @@ class AssistantEngine:
             reply, recorded = self._handle_exercise(text)
             return self._maybe_append_mood_prompt(session_id, reply, recorded)
         if intent == "note":
-            reply = self.notes.handle_message(session_id, text)
-            return self._maybe_append_mood_prompt(session_id, reply, self.notes.consume_just_saved())
+            reply = self.notes.capture(text)
+            return self._maybe_append_mood_prompt(session_id, reply, True)
         if intent == "query":
             return self._handle_query(text)
         return self._handle_chat(text)
 
-    def _handle_exercise_undo(self, session_id: str, text: str) -> Optional[str]:
-        # explicit「运动/跑步…」undoes the latest record; a bare「去除/删掉」only undoes
-        # one just logged (recency window), so it can't nuke a much older record
-        explicit = detect_activity(text) is not None or "运动" in text or "健身" in text
-        deleted = self.store.delete_last_exercise(within_seconds=None if explicit else 900)
-        if deleted:
-            # the just-recorded session triggered a mood prompt; undo cancels that ask too
-            self.store.clear_mood_pending(session_id)
-            detail = format_exercise_confirmation(deleted).replace("已记录运动：", "", 1)
-            return "已撤销刚才的运动记录：" + detail
-        if explicit:
-            return "最近没有可撤销的运动记录。"
-        # a bare「去除/删掉」with nothing recent isn't really an undo — let normal handling take over
-        return None
+    def _handle_undo(self, session_id: str, text: str) -> Optional[str]:
+        """Unified chat undo. Explicit「运动/想法」picks the target; a bare「撤销/删掉」undoes
+        whichever record (exercise or note) is most recent within a short window."""
+        if not looks_like_exercise_undo(text):
+            return None
+        explicit_ex = detect_activity(text) is not None or any(w in text for w in ("运动", "健身", "锻炼"))
+        explicit_note = any(w in text for w in ("想法", "笔记", "点子", "随想"))
+        if explicit_note and not explicit_ex:
+            return self._undo_note(session_id, None) or "最近没有可撤销的想法。"
+        if explicit_ex and not explicit_note:
+            return self._undo_exercise(session_id, None) or "最近没有可撤销的运动记录。"
+        # bare / ambiguous: undo the more recent of the two, only if recently created
+        ex_ts, nt_ts = self.store.last_exercise_ts(), self.store.last_note_ts()
+        prefer_note = nt_ts is not None and (ex_ts is None or nt_ts >= ex_ts)
+        order = ("note", "exercise") if prefer_note else ("exercise", "note")
+        for kind in order:
+            reply = self._undo_note(session_id, 900) if kind == "note" else self._undo_exercise(session_id, 900)
+            if reply is not None:
+                return reply
+        return None  # nothing recent to undo -> let normal handling take over
+
+    def _undo_exercise(self, session_id: str, window: Optional[int]) -> Optional[str]:
+        deleted = self.store.delete_last_exercise(within_seconds=window)
+        if not deleted:
+            return None
+        self.store.clear_mood_pending(session_id)  # cancels the mood prompt that record triggered
+        detail = format_exercise_confirmation(deleted).replace("已记录运动：", "", 1)
+        return "已撤销刚才的运动记录：" + detail
+
+    def _undo_note(self, session_id: str, window: Optional[int]) -> Optional[str]:
+        deleted = self.store.delete_last_note(within_seconds=window)
+        if not deleted:
+            return None
+        self.store.clear_mood_pending(session_id)
+        return f"已撤销刚才的想法：{deleted['title']}（已移到废纸篓，30 天内可在网页恢复）"
+
+    def _handle_recategorize(self, text: str) -> Optional[str]:
+        m = _RECAT_RE.match(text.strip())
+        if not m:
+            return None
+        cat = m.group("cat").strip()
+        note = self.store.recategorize_last_note(cat)
+        if not note:
+            return "最近没有可改分类的想法。"
+        return f"已把「{note['title']}」改到「{cat}」。"
 
     def _handle_exercise(self, text: str) -> Tuple[str, bool]:
         try:
@@ -92,7 +124,31 @@ class AssistantEngine:
         except ValueError:
             return ("我还没从这句话里拆出明确运动记录。你可以试试：今天跑步5公里 32分钟。", False)
         self.store.add_exercise_session(session, raw_text=text, ts=session["ts"])
-        return (format_exercise_confirmation(session), True)
+        reply = format_exercise_confirmation(session)
+        mood = self._companion_mood(text)  # 运动+心情可叠加
+        if mood:
+            reply += f"\n顺手记下心情：{mood}"
+        return (reply, True)
+
+    def _companion_mood(self, text: str) -> Optional[str]:
+        """If an exercise message also states a mood, log it too (don't overwrite today's)."""
+        if self.store.get_today_mood():
+            return None
+        emotion, note = _match_canonical(text), ""  # deterministic 开心/爽/焦虑/难过…
+        if not emotion and self.llm and self.llm.is_configured:
+            # classify the non-exercise remainder (e.g. "好累" after the run)
+            tail = "，".join(
+                s for s in re.split(r"[，,。；;\n]+", text)
+                if s.strip() and not looks_like_exercise_text(s)
+            )
+            if tail.strip():
+                parsed = classify_mood(tail, self.llm)
+                if parsed:
+                    emotion, note = parsed["emotion"], parsed.get("note", "")
+        if not emotion:
+            return None
+        self.store.add_mood(emotion, note, source="auto")
+        return emotion
 
     # ---------- mood ----------
     def _handle_mood(self, session_id: str, text: str) -> str:
